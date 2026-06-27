@@ -1,17 +1,20 @@
-# Cloudflare Pages + GitHub Deploy
+# Cloudflare Workers + GitHub Deploy
 
-Use Cloudflare Pages. The frontend is static, and `/api/*` runs through Pages Functions.
+Use the Cloudflare Workers GitHub deploy flow. The frontend builds into `dist`, and the Worker routes `/api/*` to the backend while serving static assets for the website.
 
 ## Setup
 
 1. Run the Supabase SQL in `supabase-schema.sql`.
 2. Push this project to GitHub.
-3. In Cloudflare, create a Pages project from the GitHub repo.
-4. Use these build settings:
+3. In Cloudflare, choose **Workers & Pages**.
+4. Choose **Create application**.
+5. Choose **Continue with GitHub**.
+6. Select `kiranmusu14/m2m`.
+7. Use these settings:
    - Build command: `npm run build`
-   - Build output directory: `dist`
-   - Functions directory: `functions`
-5. Add these environment variables in Cloudflare Pages:
+   - Deploy command: `npx wrangler deploy`
+   - Root directory: `/`
+8. Add these variables in Cloudflare:
    - `OPENAI_API_KEY` as a secret
    - `OPENAI_MODEL`
    - `OPENAI_REASONING_EFFORT`
@@ -30,4 +33,4 @@ Keep using:
 npm start
 ```
 
-Local development still uses `server.js`. Cloudflare production uses `functions/api/[[path]].js`.
+Local development still uses `server.js`. Cloudflare production uses `worker.js`, `wrangler.toml`, and `functions/api/[[path]].js`.

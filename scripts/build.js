@@ -18,12 +18,7 @@ for (const directory of directories) {
   copyDirectory(path.join(rootDir, directory), path.join(distDir, directory));
 }
 
-fs.writeFileSync(
-  path.join(distDir, "_routes.json"),
-  `${JSON.stringify({ version: 1, include: ["/api/*"], exclude: [] }, null, 2)}\n`
-);
-
-console.log(`Built static Cloudflare Pages assets in ${path.relative(rootDir, distDir)}`);
+console.log(`Built static Cloudflare assets in ${path.relative(rootDir, distDir)}`);
 
 function copyDirectory(source, destination) {
   if (!fs.existsSync(source)) {
