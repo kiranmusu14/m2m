@@ -301,7 +301,7 @@ function renderDiagnosis() {
       <p>${escapeHTML(state.analysis.shortRead)}</p>
       ${
         state.analysis.local
-          ? `<p class="local-note">${escapeHTML(state.analysis.apiError?.message || "Local draft. GPT is unavailable.")}</p>`
+          ? `<p class="local-note">${escapeHTML(state.analysis.apiError?.message || "Local draft. AI guide is unavailable.")}</p>`
           : ""
       }
       ${
@@ -815,7 +815,9 @@ async function analyzeEntry(entry) {
   } catch (error) {
     const fallback = localAnalyze(entry);
     fallback.local = true;
-    fallback.apiError = error.apiError || { message: "GPT is unavailable, so this is using the local draft." };
+    fallback.apiError = error.apiError || {
+      message: error.message || "AI guide is unavailable, so this is using the local draft.",
+    };
     return fallback;
   }
 
@@ -841,7 +843,7 @@ async function sendChatMessage() {
     });
   } catch (error) {
     result = { ...localChatReply(message), local: true };
-    state.analysis.apiError = error.apiError || state.analysis.apiError;
+    state.analysis.apiError = error.apiError || (error.message ? { message: error.message } : state.analysis.apiError);
   }
 
   if (isRepeatedReply(result?.reply)) {

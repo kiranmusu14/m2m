@@ -8,11 +8,10 @@ const port = Number(process.env.PORT || 3000);
 
 loadEnv(path.join(rootDir, ".env"));
 
-const openaiApiKey = process.env.OPENAI_API_KEY;
-const openaiModel = process.env.OPENAI_MODEL || "gpt-5.4-nano";
-const openaiReasoningEffort = process.env.OPENAI_REASONING_EFFORT || "none";
-const analyzeMaxOutputTokens = readPositiveInt(process.env.OPENAI_ANALYZE_MAX_OUTPUT_TOKENS, 220);
-const chatMaxOutputTokens = readPositiveInt(process.env.OPENAI_CHAT_MAX_OUTPUT_TOKENS, 80);
+const groqApiKey = process.env.GROQ_API_KEY;
+const groqModel = process.env.GROQ_MODEL || "openai/gpt-oss-20b";
+const analyzeMaxCompletionTokens = readPositiveInt(process.env.GROQ_ANALYZE_MAX_COMPLETION_TOKENS, 220);
+const chatMaxCompletionTokens = readPositiveInt(process.env.GROQ_CHAT_MAX_COMPLETION_TOKENS, 80);
 const supabaseUrl = normalizeSupabaseUrl(process.env.SUPABASE_URL);
 const supabasePublishableKey =
   process.env.SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_ANON_KEY || "";
@@ -243,7 +242,7 @@ const server = http.createServer(async (req, res) => {
     console.error(error.message);
     sendJson(res, error.statusCode || 500, {
       error: "server_error",
-      message: error.publicMessage || "Request failed.",
+      message: error.publicMessage || error.message || "Request failed.",
       apiError: error.apiError || null,
     });
   }
@@ -251,8 +250,8 @@ const server = http.createServer(async (req, res) => {
 
 server.listen(port, () => {
   console.log(`Man to Man running at http://localhost:${port}`);
-  if (!openaiApiKey) {
-    console.log("OPENAI_API_KEY is missing. The browser will use the local fallback.");
+  if (!groqApiKey) {
+    console.log("GROQ_API_KEY is missing. The browser will use the local fallback.");
   }
 });
 
@@ -265,7 +264,7 @@ async function handleAnalyze(req, res) {
     return;
   }
 
-  const result = await callOpenAI({
+  const result = await callGroq({
     instructions: analysisInstructions,
     schemaName: "m2m_emotion_analysis",
     schema: analysisSchema,
@@ -273,7 +272,7 @@ async function handleAnalyze(req, res) {
       user_words: entry,
       task: "Classify the likely emotion and start a short chat.",
     },
-    maxOutputTokens: analyzeMaxOutputTokens,
+    maxCompletionTokens: analyzeMaxCompletionTokens,
   });
 
   sendJson(res, 200, result);
@@ -290,7 +289,7 @@ async function handleChat(req, res) {
     return;
   }
 
-  const result = await callOpenAI({
+  const result = await callGroq({
     instructions: chatInstructions,
     schemaName: "m2m_chat_reply",
     schema: chatSchema,
@@ -310,7 +309,7 @@ async function handleChat(req, res) {
         .map((message) => message.text),
       task: "Reply briefly and keep the conversation moving.",
     },
-    maxOutputTokens: chatMaxOutputTokens,
+    maxCompletionTokens: chatMaxCompletionTokens,
   });
 
   sendJson(res, 200, result);
@@ -471,28 +470,36 @@ async function handleCreatePostReply(postId, req, res) {
   sendJson(res, 201, formatReply(reply));
 }
 
-async function callOpenAI({ instructions, schemaName, schema, input, maxOutputTokens }) {
-  if (!openaiApiKey) {
-    const error = new Error("OPENAI_API_KEY is missing.");
+async function callGroq({ instructions, schemaName, schema, input, maxCompletionTokens }) {
+  if (!groqApiKey) {
+    const error = new Error("GROQ_API_KEY is missing.");
     error.statusCode = 503;
     throw error;
   }
 
-  const response = await fetch("https://api.openai.com/v1/responses", {
+  const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${openaiApiKey}`,
+      Authorization: `Bearer ${groqApiKey}`,
     },
     body: JSON.stringify({
-      model: openaiModel,
-      reasoning: { effort: openaiReasoningEffort },
-      max_output_tokens: maxOutputTokens,
-      instructions,
-      input: JSON.stringify(input),
-      text: {
-        format: {
-          type: "json_schema",
+      model: groqModel,
+      messages: [
+        {
+          role: "system",
+          content: `${instructions}\nReturn only JSON. Do not include markdown, commentary, or extra text.`,
+        },
+        {
+          role: "user",
+          content: JSON.stringify(input),
+        },
+      ],
+      temperature: 0.2,
+      max_completion_tokens: maxCompletionTokens,
+      response_format: {
+        type: "json_schema",
+        json_schema: {
           name: schemaName,
           strict: true,
           schema,
@@ -504,15 +511,15 @@ async function callOpenAI({ instructions, schemaName, schema, input, maxOutputTo
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    const error = new Error(data?.error?.message || "OpenAI request failed.");
+    const error = new Error(data?.error?.message || "Groq request failed.");
     error.statusCode = response.status;
-    error.apiError = classifyOpenAIError(data?.error, response.status);
+    error.apiError = classifyGroqError(data?.error, response.status);
     throw error;
   }
 
-  const text = extractOutputText(data);
+  const text = extractGroqOutputText(data);
   if (!text) {
-    throw new Error("OpenAI returned no text.");
+    throw new Error("Groq returned no text.");
   }
 
   return JSON.parse(text);
@@ -573,32 +580,20 @@ function normalizeSupabaseUrl(value) {
   return clean && /^https:\/\/.+\.supabase\.co$/.test(clean) ? clean : "";
 }
 
-function extractOutputText(data) {
-  if (typeof data.output_text === "string") {
-    return data.output_text;
-  }
-
-  for (const item of data.output || []) {
-    for (const content of item.content || []) {
-      if (typeof content.text === "string") {
-        return content.text;
-      }
-    }
-  }
-
-  return "";
+function extractGroqOutputText(data) {
+  return data?.choices?.[0]?.message?.content || "";
 }
 
-function classifyOpenAIError(error, statusCode) {
+function classifyGroqError(error, statusCode) {
   const message = cleanText(error?.message, 220);
   const code = cleanText(error?.code, 80);
   const type = cleanText(error?.type, 80);
   const lower = `${message} ${code} ${type}`.toLowerCase();
 
-  if (lower.includes("quota") || lower.includes("billing") || lower.includes("credits")) {
+  if (lower.includes("quota") || lower.includes("billing") || lower.includes("credits") || lower.includes("rate")) {
     return {
       kind: "quota",
-      message: "OpenAI says this project has no available API quota or hit a budget limit.",
+      message: "Groq says this project has no available API quota, hit a rate limit, or hit a spend limit.",
       statusCode,
       code,
       type,
@@ -608,7 +603,7 @@ function classifyOpenAIError(error, statusCode) {
   if (statusCode === 401 || lower.includes("api key") || lower.includes("auth")) {
     return {
       kind: "auth",
-      message: "OpenAI says the API key is invalid, revoked, or from the wrong project.",
+      message: "Groq says the API key is missing, invalid, revoked, or from the wrong project.",
       statusCode,
       code,
       type,
@@ -617,7 +612,7 @@ function classifyOpenAIError(error, statusCode) {
 
   return {
     kind: "api",
-    message: message || "OpenAI API request failed.",
+    message: message || "Groq API request failed.",
     statusCode,
     code,
     type,

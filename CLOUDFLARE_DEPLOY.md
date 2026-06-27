@@ -15,11 +15,10 @@ Use the Cloudflare Workers GitHub deploy flow. The frontend builds into `dist`, 
    - Deploy command: `npx wrangler deploy`
    - Root directory: `/`
 8. Add these variables in Cloudflare:
-   - `OPENAI_API_KEY` as a secret
-   - `OPENAI_MODEL`
-   - `OPENAI_REASONING_EFFORT`
-   - `OPENAI_ANALYZE_MAX_OUTPUT_TOKENS`
-   - `OPENAI_CHAT_MAX_OUTPUT_TOKENS`
+   - `GROQ_API_KEY` as a secret
+   - `GROQ_MODEL`
+   - `GROQ_ANALYZE_MAX_COMPLETION_TOKENS`
+   - `GROQ_CHAT_MAX_COMPLETION_TOKENS`
    - `SUPABASE_URL`
    - `SUPABASE_PUBLISHABLE_KEY`
 
