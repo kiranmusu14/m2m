@@ -1,0 +1,1041 @@
+const pages = [
+  ["home", "Home"],
+  ["checkin", "Check-In"],
+  ["community", "Community"],
+  ["guide", "AI Guide"],
+];
+
+const state = {
+  page: getInitialPage(),
+  entry: "",
+  analysis: null,
+  messages: [],
+  isThinking: false,
+  communityLoaded: false,
+  communityLoading: false,
+  communityError: "",
+  communities: [],
+  activeCommunityId: "",
+  activeCommunityName: "",
+  communityReplies: {},
+  communityPosts: [],
+};
+
+const checkInChips = [
+  "Angry",
+  "Numb",
+  "Lonely",
+  "Burned out",
+  "Stressed",
+  "Lost",
+  "Ashamed",
+  "Heartbroken",
+  "Overthinking",
+  "Unmotivated",
+  "Fine, but not really",
+];
+
+const resetTools = [
+  ["Anger", "Delay the reaction. Name the line that got crossed."],
+  ["Panic", "Slow the body first. Then face one next thing."],
+  ["Overthinking", "Write the loop once. Stop feeding it for ten minutes."],
+  ["Shame", "Separate fact from punishment. Pick one repair."],
+];
+
+const patterns = {
+  unsafe: [
+    "kill myself",
+    "hurt myself",
+    "end it",
+    "suicide",
+    "want to die",
+    "dont want to live",
+    "don't want to live",
+    "disappear forever",
+    "not wake up",
+    "hurt someone",
+    "do something bad",
+  ],
+  anger: ["angry", "pissed", "rage", "furious", "snap", "explode", "yell", "disrespect", "mad"],
+  "low mood": ["depressed", "empty", "hopeless", "worthless", "nothing matters", "no point", "low"],
+  sadness: ["sad", "cry", "hurt", "grief", "lost", "rejected"],
+  heartbreak: ["miss her", "miss him", "breakup", "broke up", "heartbroken", "divorce"],
+  panic: ["panic", "can't breathe", "cant breathe", "racing", "scared", "can't sleep", "cant sleep"],
+  anxiety: ["anxious", "anxiety", "nervous", "uneasy", "worried"],
+  numbness: ["numb", "blank", "nothing", "shut down", "shutdown", "don't care", "dont care"],
+  shame: ["ashamed", "shame", "failure", "failed", "loser", "hate myself", "embarrassed"],
+  guilt: ["guilt", "guilty", "regret", "my fault", "i messed up"],
+  loneliness: ["lonely", "alone", "isolated", "no one", "nobody", "ignored"],
+  overwhelm: ["overwhelmed", "too much", "can't handle", "cant handle", "drowning", "buried"],
+  rumination: ["can't stop thinking", "cant stop thinking", "keep thinking", "replaying", "looping", "obsessing"],
+  stress: ["stress", "stressed", "pressure", "work", "money", "bills", "job"],
+};
+
+const toneByEmotion = {
+  unsafe: "urgent",
+  anger: "calm",
+  panic: "grounding",
+  anxiety: "grounding",
+  sadness: "uplifting",
+  heartbreak: "uplifting",
+  "low mood": "uplifting",
+  loneliness: "uplifting",
+  numbness: "steady",
+  shame: "steady",
+  guilt: "steady",
+  overwhelm: "grounding",
+  rumination: "grounding",
+  stress: "grounding",
+};
+
+const toneProfiles = {
+  calm: "lower the heat, slow reaction, ask for the line that got crossed",
+  uplifting: "acknowledge pain, add realistic hope, suggest one small forward step",
+  grounding: "slow the body, reduce the spiral, narrow the next ten minutes",
+  steady: "separate facts from self-attack, stay honest and firm",
+  urgent: "focus on immediate safety and real-world crisis support",
+};
+
+const toneLabelMap = {
+  calm: "Calming",
+  uplifting: "Uplifting",
+  grounding: "Grounding",
+  steady: "Steady",
+  urgent: "Urgent",
+};
+
+const localReads = {
+  unsafe: ["This needs another human now.", "This sounds unsafe. Are you safe right now?"],
+  anger: ["This looks like anger, maybe with hurt under it.", "Anger is on top. Slow down first. What felt crossed?"],
+  "low mood": ["This looks heavy, low, and hard to carry.", "This is heavy, but movable. What is one small thing you can do?"],
+  sadness: ["This looks like sadness or hurt.", "This hurts, but you are not stuck here. What part hits hardest?"],
+  heartbreak: ["This looks like heartbreak or attachment pain.", "Heartbreak can make one person feel like oxygen. What keeps replaying?"],
+  panic: ["This looks like panic or alarm.", "Start with the body. Where do you feel it?"],
+  anxiety: ["This looks like anxiety or worry.", "What is your mind predicting?"],
+  numbness: ["This looks like numbness or shutdown.", "When did you go quiet?"],
+  shame: ["This looks like shame or self-attack.", "What are you calling yourself?"],
+  guilt: ["This looks like guilt or regret.", "Is there a repair to make?"],
+  loneliness: ["This looks like loneliness, even if you want space.", "Who do you wish understood?"],
+  overwhelm: ["This looks like overwhelm: too much at once.", "What is the loudest pressure?"],
+  rumination: ["This looks like rumination: your mind looping.", "What thought keeps looping?"],
+  stress: ["This looks like stress and pressure.", "What needs attention first?"],
+};
+
+const emotionLabelMap = {
+  unsafe: "Unsafe",
+  anger: "Anger",
+  angry: "Anger",
+  sadness: "Sadness",
+  sad: "Sadness",
+  stress: "Stress",
+  stressed: "Stress",
+  overwhelm: "Overwhelm",
+  overwhelmed: "Overwhelm",
+  rumination: "Rumination",
+  panic: "Panic",
+  panicked: "Panic",
+  anxiety: "Anxiety",
+  anxious: "Anxiety",
+  numbness: "Numbness",
+  numb: "Numbness",
+  shame: "Shame",
+  ashamed: "Shame",
+  guilt: "Guilt",
+  guilty: "Guilt",
+  loneliness: "Loneliness",
+  lonely: "Loneliness",
+  hurt: "Hurt",
+  heartbreak: "Heartbreak",
+  "low mood": "Low mood",
+  "depressed/down": "Low mood",
+  depressed: "Low mood",
+  failure: "Shame",
+};
+
+const site = document.querySelector("#site");
+
+window.addEventListener("hashchange", () => {
+  state.page = getInitialPage();
+  render();
+});
+
+function getInitialPage() {
+  const page = window.location.hash.replace("#", "");
+  return pages.some(([id]) => id === page) ? page : "home";
+}
+
+function setPage(page) {
+  state.page = page;
+  window.location.hash = page;
+  render();
+}
+
+function render() {
+  site.innerHTML = `
+    ${renderHeader()}
+    <main>
+      ${renderPage()}
+    </main>
+  `;
+  bindPageEvents();
+
+  if (state.page === "community" && !state.communityLoaded && !state.communityLoading) {
+    loadCommunities();
+  }
+}
+
+function renderHeader() {
+  return `
+    <header class="site-header">
+      <button class="brand" data-page="home" type="button">
+        <span class="brand-mark">M2M</span>
+        <span>Man to Man</span>
+      </button>
+      <nav class="main-nav" aria-label="Main navigation">
+        ${pages
+          .map(
+            ([id, label]) => `
+              <button class="${state.page === id ? "is-active" : ""}" data-page="${id}" type="button">${label}</button>
+            `
+          )
+          .join("")}
+      </nav>
+    </header>
+  `;
+}
+
+function renderPage() {
+  if (state.page === "checkin") return renderCheckIn();
+  if (state.page === "community") return renderCommunity();
+  if (state.page === "guide") return renderGuide();
+  return renderHome();
+}
+
+function renderHome() {
+  return `
+    <section class="hero">
+      <div class="hero-bg" aria-hidden="true"></div>
+      <div class="hero-content">
+        <p class="eyebrow">The place men go before they hit the wall</p>
+        <h1>Man to Man</h1>
+        <p class="hero-copy">
+          Real support for men. No judgment. No bullshit. Honest conversations,
+          practical tools, and a brotherhood that helps you move forward.
+        </p>
+        <div class="hero-actions">
+          <button class="primary-button" data-page="checkin" type="button">Start a check-in</button>
+          <button class="secondary-button" data-page="community" type="button">See the community</button>
+        </div>
+        <p class="safety-line">Not therapy. Not a replacement for professional mental health care. Crisis support is surfaced when needed.</p>
+      </div>
+    </section>
+
+    <section class="section-band">
+      <div class="section-heading">
+        <p class="eyebrow">Mission</p>
+        <h2>Help men understand what they are carrying, then take one honest step.</h2>
+      </div>
+      <div class="benefit-grid">
+        ${[
+          ["Name it", "Translate rough words into clear labels like Anger, Shame, Stress, Overwhelm, or Rumination."],
+          ["Talk it through", "A short AI guide responds in plain language and moves the conversation forward."],
+          ["Find men like you", "Anonymous posts and circles create connection without performance."],
+          ["Do the next thing", "Reset tools and accountability focus on action, not perfection."],
+        ]
+          .map(([title, text]) => `<article class="feature-card"><h3>${title}</h3><p>${text}</p></article>`)
+          .join("")}
+      </div>
+    </section>
+
+    <section class="section-band two-column">
+      <div>
+        <p class="eyebrow">MVP</p>
+        <h2>Four pages. One tight loop.</h2>
+        <p class="body-copy">Home, Check-In, Community, and AI Guide are enough to test the real behavior with 100 men before building the full platform.</p>
+      </div>
+      <div class="roadmap-list">
+        ${["Check in with rough words", "Get a plain emotion label", "Talk to the guide", "Post or join a circle"]
+          .map((item, index) => `<div class="roadmap-item"><span>${index + 1}</span><p>${item}</p></div>`)
+          .join("")}
+      </div>
+    </section>
+  `;
+}
+
+function renderCheckIn() {
+  return `
+    <section class="workspace">
+      <div class="workspace-copy">
+        <p class="eyebrow">What's going on?</p>
+        <h1>Use your own words.</h1>
+        <p>No perfect emotional language needed. Type the rough version, or tap a starting point.</p>
+      </div>
+      <div class="tool-panel">
+        ${state.analysis ? renderDiagnosis() : renderCheckInForm()}
+      </div>
+    </section>
+  `;
+}
+
+function renderCheckInForm() {
+  return `
+    <form class="checkin-form" id="checkin-form">
+      <div class="chip-grid">
+        ${checkInChips.map((chip) => `<button class="prompt-chip" type="button" data-chip="${escapeHTML(chip)}">${chip}</button>`).join("")}
+      </div>
+      <label class="visually-hidden" for="entry">Describe what has been happening</label>
+      <textarea id="entry" placeholder="Example: I keep snapping at people and then I feel like a failure.">${escapeHTML(state.entry)}</textarea>
+      <p class="error-text" id="entry-error"></p>
+      <button class="primary-button" type="submit">Name what this is</button>
+    </form>
+  `;
+}
+
+function renderDiagnosis() {
+  const labels = displayEmotionWords(state.analysis.emotionWords, state.analysis.emotion);
+  return `
+    <div class="diagnosis-card ${state.analysis.crisis ? "is-danger" : ""}">
+      <p class="eyebrow">What it sounds like</p>
+      <h2>${labels.join(" + ")}</h2>
+      <p class="tone-line">Guide tone: ${displayTone(state.analysis.tone)}</p>
+      <p>${escapeHTML(state.analysis.shortRead)}</p>
+      ${
+        state.analysis.local
+          ? `<p class="local-note">${escapeHTML(state.analysis.apiError?.message || "Local draft. GPT is unavailable.")}</p>`
+          : ""
+      }
+      ${
+        state.analysis.crisis
+          ? `<a class="inline-crisis" href="tel:988">${escapeHTML(state.analysis.crisisText || "Call or text 988 now.")}</a>`
+          : ""
+      }
+      <div class="diagnosis-actions">
+        <button class="primary-button" data-page="guide" type="button">Talk it through</button>
+        <button class="secondary-button" id="reset-checkin" type="button">Start over</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderGuide() {
+  return `
+    <section class="workspace guide-workspace">
+      <div class="workspace-copy">
+        <p class="eyebrow">AI Man-to-Man Guide</p>
+        <h1>Short replies. Real next steps.</h1>
+        <p>The guide names what is happening once, then helps you move: trigger, reaction, meaning, next action.</p>
+      </div>
+      <div class="tool-panel">
+        ${state.analysis ? renderChat() : renderGuideStarter()}
+      </div>
+    </section>
+  `;
+}
+
+function renderGuideStarter() {
+  return `
+    <form class="checkin-form" id="guide-start-form">
+      <textarea id="guide-entry" placeholder="Type the rough version here...">${escapeHTML(state.entry)}</textarea>
+      <button class="primary-button" type="submit">Start the guide</button>
+    </form>
+  `;
+}
+
+function renderChat() {
+  const labels = displayEmotionWords(state.analysis.emotionWords, state.analysis.emotion);
+  return `
+    <div class="chat-shell">
+      <div class="mini-diagnosis">
+        <span>What it sounds like</span>
+        <strong>${labels.join(" + ")}</strong>
+        <em>${displayTone(state.analysis.tone)}</em>
+      </div>
+      <div class="chat-window" id="chat-window">
+        ${state.messages
+          .map(
+            (message) => `
+              <div class="chat-message is-${message.role}">
+                <p>${escapeHTML(message.text)}</p>
+              </div>
+            `
+          )
+          .join("")}
+        ${state.isThinking ? `<div class="chat-message is-bot is-thinking"><p>Reading that...</p></div>` : ""}
+      </div>
+      <form class="chat-form" id="chat-form">
+        <textarea id="chat-input" rows="2" placeholder="Reply in your own words..."></textarea>
+        <button class="primary-button" type="submit">Send</button>
+      </form>
+    </div>
+  `;
+}
+
+function renderCommunity() {
+  return `
+    <section class="workspace community-workspace">
+      <div class="workspace-copy">
+        <p class="eyebrow">Brotherhood Community</p>
+        <h1>Anonymous, honest, accountable.</h1>
+        <p>Men can post what is real, get support, and join circles without turning pain into blame.</p>
+      </div>
+      <div class="community-layout">
+        <div class="community-main">
+          ${state.activeCommunityId ? renderPostForm() : renderNoCommunitySelected()}
+          <div class="post-list">
+            ${renderCommunityStatus()}
+            ${renderCommunityPosts()}
+          </div>
+        </div>
+        <aside class="community-side">
+          <h2>Create a community</h2>
+          <form class="community-form" id="community-form">
+            <label class="visually-hidden" for="community-name">Community name</label>
+            <input id="community-name" placeholder="Breakups, Anger, Fatherhood..." maxlength="80" />
+            <label class="visually-hidden" for="community-description">Community purpose</label>
+            <textarea id="community-description" placeholder="What kind of conversations belong here?" maxlength="220"></textarea>
+            <button class="primary-button" type="submit">Create community</button>
+          </form>
+          <h2>Communities</h2>
+          ${renderCommunityList()}
+          <h2>Rules</h2>
+          <ul class="rule-list">
+            <li>Respect</li>
+            <li>Accountability</li>
+            <li>No hate or misogyny</li>
+            <li>No bullying</li>
+            <li>No victim culture</li>
+          </ul>
+        </aside>
+      </div>
+    </section>
+  `;
+}
+
+function renderPostForm() {
+  return `
+    <form class="post-form" id="post-form">
+      <label for="post-text">Post in ${escapeHTML(state.activeCommunityName)}</label>
+      <textarea id="post-text" placeholder="Say the real thing. Keep it respectful."></textarea>
+      <div class="post-actions">
+        <span class="active-circle">${escapeHTML(state.activeCommunityName)}</span>
+        <button class="primary-button" type="submit">Post</button>
+      </div>
+    </form>
+  `;
+}
+
+function renderNoCommunitySelected() {
+  return `
+    <div class="empty-community">
+      <h3>Create or choose a community first.</h3>
+      <p>Conversations live inside communities created by the men using the site.</p>
+    </div>
+  `;
+}
+
+function renderCommunityList() {
+  if (!state.communities.length && !state.communityLoading) {
+    return `<div class="empty-mini">No communities yet. Create the first one.</div>`;
+  }
+
+  return `
+    <div class="community-list">
+      ${state.communities
+        .map(
+          (community) => `
+            <button
+              class="${state.activeCommunityId === community.id ? "is-active" : ""}"
+              type="button"
+              data-community-id="${escapeHTML(community.id)}"
+            >
+              <strong>${escapeHTML(community.name)}</strong>
+              ${community.description ? `<small>${escapeHTML(community.description)}</small>` : ""}
+            </button>
+          `
+        )
+        .join("")}
+    </div>
+  `;
+}
+
+function renderCommunityStatus() {
+  if (state.communityLoading) {
+    return `<div class="community-status">Loading community posts...</div>`;
+  }
+
+  if (state.communityError) {
+    return `<div class="community-status">${escapeHTML(state.communityError)}</div>`;
+  }
+
+  return "";
+}
+
+function renderCommunityPosts() {
+  if (!state.activeCommunityId && !state.communityLoading) {
+    return `
+      <div class="empty-community">
+        <h3>No community selected.</h3>
+        <p>Create a community, then start the first conversation inside it.</p>
+      </div>
+    `;
+  }
+
+  if (!state.communityPosts.length && !state.communityLoading) {
+    return `
+      <div class="empty-community">
+        <h3>Start the first conversation in ${escapeHTML(state.activeCommunityName)}.</h3>
+        <p>No fake posts. No staged community. Say one honest thing.</p>
+      </div>
+    `;
+  }
+
+  return state.communityPosts
+    .map(
+      (post) => `
+        <article class="post-card">
+          <span>${escapeHTML(post.circle)}</span>
+          <p>${escapeHTML(post.text)}</p>
+          <div class="post-controls">
+            <button type="button">Respect</button>
+            <button type="button" data-load-replies="${escapeHTML(post.id || "")}">
+              ${state.communityReplies[post.id] ? "Refresh conversation" : `Open conversation${post.replies ? ` (${post.replies})` : ""}`}
+            </button>
+          </div>
+          ${renderReplies(post)}
+        </article>
+      `
+    )
+    .join("");
+}
+
+function renderReplies(post) {
+  const replies = state.communityReplies[post.id] || [];
+
+  return `
+    <div class="reply-thread">
+      ${replies
+        .map((reply) => `<div class="reply-card"><p>${escapeHTML(reply.text)}</p></div>`)
+        .join("")}
+      <form class="reply-form" data-reply-form="${escapeHTML(post.id || "")}">
+        <input placeholder="Reply with support, honesty, or a next step..." />
+        <button class="secondary-button" type="submit">Reply</button>
+      </form>
+    </div>
+  `;
+}
+
+function bindPageEvents() {
+  document.querySelectorAll("[data-page]").forEach((button) => {
+    button.addEventListener("click", () => setPage(button.dataset.page));
+  });
+
+  document.querySelectorAll("[data-chip]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const textarea = document.querySelector("#entry");
+      if (!textarea) return;
+      textarea.value = textarea.value.trim() ? `${textarea.value.trim()}\n${button.dataset.chip}` : button.dataset.chip;
+      textarea.focus();
+    });
+  });
+
+  document.querySelectorAll("[data-community-id]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const community = state.communities.find((item) => item.id === button.dataset.communityId);
+      if (!community) return;
+      state.activeCommunityId = community.id;
+      state.activeCommunityName = community.name;
+      state.communityPosts = [];
+      state.communityReplies = {};
+      await loadCommunityPosts();
+    });
+  });
+
+  document.querySelector("#checkin-form")?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const entry = document.querySelector("#entry").value.trim();
+    await startAnalysis(entry, "#entry-error", "checkin");
+  });
+
+  document.querySelector("#guide-start-form")?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const entry = document.querySelector("#guide-entry").value.trim();
+    await startAnalysis(entry, null, "guide");
+  });
+
+  document.querySelector("#reset-checkin")?.addEventListener("click", () => {
+    state.entry = "";
+    state.analysis = null;
+    state.messages = [];
+    render();
+  });
+
+  document.querySelector("#chat-form")?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    await sendChatMessage();
+  });
+
+  document.querySelector("#chat-input")?.addEventListener("keydown", async (event) => {
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      await sendChatMessage();
+    }
+  });
+
+  document.querySelector("#post-form")?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const text = document.querySelector("#post-text").value.trim();
+    if (!text) return;
+    await createCommunityPost({ text });
+  });
+
+  document.querySelector("#community-form")?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const name = document.querySelector("#community-name").value.trim();
+    const description = document.querySelector("#community-description").value.trim();
+    if (!name) return;
+    await createCommunity({ name, description });
+  });
+
+  document.querySelectorAll("[data-load-replies]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const postId = button.dataset.loadReplies;
+      if (postId) await loadReplies(postId);
+    });
+  });
+
+  document.querySelectorAll("[data-reply-form]").forEach((form) => {
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const postId = form.dataset.replyForm;
+      const input = form.querySelector("input");
+      const text = input.value.trim();
+      if (!postId || !text) return;
+      input.value = "";
+      await createReply(postId, text);
+    });
+  });
+
+  const chatWindow = document.querySelector("#chat-window");
+  if (chatWindow) chatWindow.scrollTop = chatWindow.scrollHeight;
+}
+
+async function loadCommunityPosts() {
+  state.communityLoading = true;
+  state.communityError = "";
+  render();
+
+  try {
+    const query = state.activeCommunityId ? `?community_id=${encodeURIComponent(state.activeCommunityId)}` : "";
+    const posts = await postJSON(`/api/community-posts${query}`, null, "GET");
+    state.communityPosts = posts;
+    state.communityLoaded = true;
+  } catch (error) {
+    state.communityLoaded = true;
+    state.communityError =
+      error.message || "Community posts will appear here once Supabase is ready.";
+  } finally {
+    state.communityLoading = false;
+    render();
+  }
+}
+
+async function loadCommunities() {
+  state.communityLoading = true;
+  state.communityError = "";
+  render();
+
+  try {
+    const communities = await postJSON("/api/communities", null, "GET");
+    state.communities = communities;
+    if (!state.activeCommunityId && communities.length) {
+      state.activeCommunityId = communities[0].id;
+      state.activeCommunityName = communities[0].name;
+      await loadCommunityPosts();
+      return;
+    }
+  } catch (error) {
+    state.communityError =
+      error.message || "Communities will appear here once Supabase is ready.";
+  } finally {
+    state.communityLoaded = true;
+    state.communityLoading = false;
+    render();
+  }
+}
+
+async function createCommunity(community) {
+  const draft = {
+    id: `local-community-${Date.now()}`,
+    name: community.name,
+    description: community.description || "",
+  };
+  state.communities.unshift(draft);
+  state.activeCommunityId = draft.id;
+  state.activeCommunityName = draft.name;
+  state.communityPosts = [];
+  state.communityReplies = {};
+  render();
+
+  try {
+    const saved = await postJSON("/api/communities", community);
+    state.communities = state.communities.map((item) => (item === draft ? saved : item));
+    state.activeCommunityId = saved.id;
+    state.activeCommunityName = saved.name;
+    state.communityError = "";
+  } catch (error) {
+    state.communityError =
+      error.message || "Created locally for now. Supabase is not ready.";
+  }
+
+  render();
+}
+
+async function createCommunityPost(post) {
+  const draft = {
+    id: `local-post-${Date.now()}`,
+    communityId: state.activeCommunityId,
+    circle: state.activeCommunityName,
+    text: post.text,
+    replies: 0,
+  };
+  state.communityPosts.unshift(draft);
+  render();
+
+  try {
+    const savedPost = await postJSON("/api/community-posts", {
+      communityId: state.activeCommunityId,
+      circle: state.activeCommunityName,
+      text: post.text,
+    });
+    state.communityPosts = state.communityPosts.map((item) => (item === draft ? savedPost : item));
+    state.communityError = "";
+  } catch (error) {
+    state.communityError =
+      error.message || "Saved locally for now. Supabase is not ready.";
+  }
+
+  render();
+}
+
+async function loadReplies(postId) {
+  if (postId.startsWith("local-post-")) {
+    state.communityReplies[postId] = state.communityReplies[postId] || [];
+    render();
+    return;
+  }
+
+  try {
+    state.communityReplies[postId] = await postJSON(
+      `/api/community-posts/${encodeURIComponent(postId)}/replies`,
+      null,
+      "GET"
+    );
+  } catch (error) {
+    state.communityError = error.message || "Could not load replies.";
+  }
+
+  render();
+}
+
+async function createReply(postId, text) {
+  const draft = { id: `local-reply-${Date.now()}`, postId, text };
+  state.communityReplies[postId] = [...(state.communityReplies[postId] || []), draft];
+  state.communityPosts = incrementReplyCount(postId);
+  render();
+
+  if (postId.startsWith("local-post-")) return;
+
+  try {
+    const saved = await postJSON(`/api/community-posts/${encodeURIComponent(postId)}/replies`, { text });
+    state.communityReplies[postId] = state.communityReplies[postId].map((item) =>
+      item === draft ? saved : item
+    );
+    state.communityError = "";
+  } catch (error) {
+    state.communityError = error.message || "Saved locally for now. Supabase is not ready.";
+  }
+
+  render();
+}
+
+function incrementReplyCount(postId) {
+  return state.communityPosts.map((post) =>
+    post.id === postId ? { ...post, replies: Number(post.replies || 0) + 1 } : post
+  );
+}
+
+async function startAnalysis(entry, errorSelector, pageAfter) {
+  if (entry.split(/\s+/).filter(Boolean).length < 3) {
+    const error = errorSelector ? document.querySelector(errorSelector) : null;
+    if (error) error.textContent = "Give it a few more words. Rough is fine.";
+    return;
+  }
+
+  state.entry = entry;
+  state.analysis = null;
+  state.messages = [];
+  renderLoading(pageAfter);
+  state.analysis = await analyzeEntry(entry);
+  state.messages = [{ role: "bot", text: state.analysis.opener }];
+  state.page = pageAfter;
+  render();
+}
+
+function renderLoading(page) {
+  state.page = page;
+  site.innerHTML = `
+    ${renderHeader()}
+    <main>
+      <section class="loading-section">
+        <span class="loading-dot"></span>
+        <p class="eyebrow">Reading it</p>
+        <h1>Naming what this might be.</h1>
+      </section>
+    </main>
+  `;
+}
+
+async function analyzeEntry(entry) {
+  try {
+    const result = await postJSON("/api/analyze", { entry });
+    if (result?.emotion && result?.shortRead && result?.opener) {
+      const emotion = canonicalEmotion(result.emotion);
+      return {
+        emotion,
+        emotionWords: displayEmotionWords(result.emotionWords, emotion),
+        intensity: result.intensity || "medium",
+        shortRead: result.shortRead,
+        keyPhrase: result.keyPhrase || "",
+        tone: result.tone || "steady",
+        opener: result.opener,
+        crisis: Boolean(result.crisis),
+        crisisText: result.crisisText || "",
+      };
+    }
+  } catch (error) {
+    const fallback = localAnalyze(entry);
+    fallback.local = true;
+    fallback.apiError = error.apiError || { message: "GPT is unavailable, so this is using the local draft." };
+    return fallback;
+  }
+
+  return { ...localAnalyze(entry), local: true };
+}
+
+async function sendChatMessage() {
+  const input = document.querySelector("#chat-input");
+  const message = input?.value.trim();
+  if (!message || state.isThinking) return;
+
+  state.messages.push({ role: "user", text: message });
+  input.value = "";
+  state.isThinking = true;
+  render();
+
+  let result;
+  try {
+    result = await postJSON("/api/chat", {
+      entry: state.entry,
+      analysis: state.analysis,
+      messages: state.messages,
+    });
+  } catch (error) {
+    result = { ...localChatReply(message), local: true };
+    state.analysis.apiError = error.apiError || state.analysis.apiError;
+  }
+
+  if (isRepeatedReply(result?.reply)) {
+    result = { ...localChatReply(message), local: result?.local || false };
+  }
+
+  if (result?.emotion) {
+    const emotion = canonicalEmotion(result.emotion);
+    if (emotion !== state.analysis.emotion) {
+      state.analysis.emotion = emotion;
+      state.analysis.emotionWords = displayEmotionWords([emotion], emotion);
+    }
+  }
+
+  state.messages.push({ role: "bot", text: result?.reply || "Say one more sentence about that." });
+  if (result?.crisis) {
+    state.analysis.crisis = true;
+    state.analysis.crisisText = result.crisisText || state.analysis.crisisText;
+  }
+
+  state.isThinking = false;
+  render();
+}
+
+async function postJSON(path, payload, method = "POST") {
+  const response = await fetch(path, {
+    method,
+    headers: { "Content-Type": "application/json" },
+    body: payload ? JSON.stringify(payload) : undefined,
+  });
+  const result = await response.json();
+
+  if (!response.ok) {
+    const error = new Error(result?.apiError?.message || result?.message || "Request failed.");
+    error.apiError = result?.apiError || null;
+    throw error;
+  }
+
+  return result;
+}
+
+function localAnalyze(entry) {
+  const scores = scoreEntry(entry);
+  const topSignals = getTopSignals(scores);
+  const emotion = topSignals[0] || "stress";
+  const [shortRead, opener] = localReads[emotion] || localReads.stress;
+  const keyPhrase = extractKeyPhrase(entry);
+
+  return {
+    emotion,
+    emotionWords: displayEmotionWords(topSignals.length ? topSignals : [emotion], emotion),
+    intensity: scores.unsafe ? "high" : "medium",
+    shortRead,
+    keyPhrase,
+    tone: toneByEmotion[emotion] || "steady",
+    opener: keyPhrase ? `"${keyPhrase}" is the clue. ${opener}` : opener,
+    crisis: emotion === "unsafe",
+    crisisText: emotion === "unsafe" ? "Call or text 988 now, or emergency services if there is immediate danger." : "",
+  };
+}
+
+function localChatReply(message) {
+  const emotion = canonicalEmotion(state.analysis?.emotion || "stress");
+  const userTurnCount = state.messages.filter((item) => item.role === "user").length;
+
+  if (localAnalyze(message).crisis) {
+    return {
+      reply: "Are you safe right now? Call or text 988 now.",
+      emotion: "unsafe",
+      crisis: true,
+      crisisText: "Call or text 988 now, or emergency services if there is immediate danger.",
+    };
+  }
+
+  const replies = {
+    anger: ["Slow it down first. What line got stepped on?", "Do not react yet. What did you want to do?", "What truth needs a cleaner version?", "What would handling this calmly look like today?"],
+    panic: ["Start with the body. What is it doing right now?", "What is your mind predicting?", "Exhale slowly six times. What changed?", "What is the next one thing in front of you?"],
+    anxiety: ["Name the prediction. What is your mind warning you about?", "What are you trying to prevent?", "What can you control in the next ten minutes?", "What is the next one thing in front of you?"],
+    sadness: ["This hurts, but it can move. What part keeps replaying?", "What do you wish was different?", "Who can hear one honest sentence?", "What would be kind to do tonight?"],
+    heartbreak: ["This is painful, not permanent. What keeps replaying?", "What do you want from them right now?", "Write the message. Wait twenty minutes.", "What would protect your dignity tonight?"],
+    "low mood": ["Heavy days still count. How long has it been this heavy?", "What got harder today?", "Water, shower, or walk first?", "Who can you tell: 'I'm not good today'?"],
+    numbness: ["When did you go quiet?", "What have you stopped doing?", "Which small physical thing can you do now?", "What would make the next hour less stuck?"],
+    shame: ["What actually happened?", "What are you calling yourself?", "What is one fact, not punishment?", "Is there a repair to make?"],
+    guilt: ["What actually happened?", "Is there a repair to make?", "What is one clean apology or action?", "What part is punishment, not repair?"],
+    loneliness: ["You do not have to fix it alone. Who do you wish understood?", "Are you avoiding people, or feeling unwanted?", "Who is safest to text one honest sentence?", "What would connection look like without performing?"],
+    overwhelm: ["Bring it down to one thing. What is the loudest pressure?", "What can wait?", "Name the next small task.", "What is one thing you can drop today?"],
+    rumination: ["The loop wants certainty. What thought keeps repeating?", "What answer are you trying to get?", "Write the loop once. Then pause it.", "What action would end the loop for now?"],
+    stress: ["Narrow it down. What needs attention first?", "What are you carrying alone?", "Name the next small task.", "What can wait until tomorrow?"],
+  };
+
+  const options = replies[emotion] || ["Say one more sentence about that."];
+  return {
+    reply: options[Math.min(userTurnCount - 1, options.length - 1)],
+    emotion,
+    crisis: false,
+    crisisText: "",
+  };
+}
+
+function scoreEntry(text) {
+  const normalized = normalize(text);
+  const scores = {};
+  Object.entries(patterns).forEach(([emotion, words]) => {
+    scores[emotion] = words.reduce((count, word) => (normalized.includes(word) ? count + 1 : count), 0);
+  });
+  return scores;
+}
+
+function getTopSignals(scores) {
+  const sorted = Object.entries(scores)
+    .filter(([, score]) => score > 0)
+    .sort((a, b) => b[1] - a[1])
+    .map(([emotion]) => emotion);
+  return sorted.includes("unsafe") ? ["unsafe"] : sorted.slice(0, 3);
+}
+
+function canonicalEmotion(value) {
+  const key = normalize(value || "").replace(/[_-]/g, " ").trim();
+  const label = emotionLabelMap[key];
+  return label ? label.toLowerCase() : key || "stress";
+}
+
+function displayEmotion(value) {
+  const key = normalize(value || "").replace(/[_-]/g, " ").trim();
+  return emotionLabelMap[key] || titleCase(key || "Stress");
+}
+
+function displayEmotionWords(words, fallback) {
+  const source = Array.isArray(words) && words.length ? words : [fallback || "stress"];
+  return [...new Set(source.map(displayEmotion).filter(Boolean))].slice(0, 3);
+}
+
+function displayTone(tone) {
+  const key = normalize(tone || "").trim();
+  return toneLabelMap[key] || "Steady";
+}
+
+function extractKeyPhrase(text) {
+  const clean = String(text || "").replace(/\s+/g, " ").replace(/[.!?]+$/g, "").trim();
+  if (!clean) return "";
+  const clauses = clean
+    .split(/\b(?:and|but|because|when|then|so)\b|[,.;:]/i)
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .sort((a, b) => scorePhrase(b) - scorePhrase(a));
+  return (clauses[0] || clean).split(/\s+/).slice(0, 8).join(" ");
+}
+
+function scorePhrase(phrase) {
+  const lower = normalize(phrase);
+  let score = Math.min(phrase.length, 80) / 10;
+  Object.values(patterns).flat().forEach((word) => {
+    if (lower.includes(word)) score += 6;
+  });
+  return score;
+}
+
+function isRepeatedReply(reply) {
+  const cleanReply = simplifyReply(reply);
+  if (!cleanReply) return true;
+  const botReplies = state.messages.filter((message) => message.role === "bot").map((message) => simplifyReply(message.text));
+  return botReplies.some((botReply) => botReply === cleanReply || similarity(botReply, cleanReply) > 0.72);
+}
+
+function similarity(a, b) {
+  const aWords = new Set(a.split(" ").filter((word) => word.length > 2));
+  const bWords = new Set(b.split(" ").filter((word) => word.length > 2));
+  const allWords = new Set([...aWords, ...bWords]);
+  const sharedWords = [...aWords].filter((word) => bWords.has(word));
+  return allWords.size ? sharedWords.length / allWords.size : 0;
+}
+
+function simplifyReply(text) {
+  return String(text || "").toLowerCase().replace(/["'.,?!:;—-]/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function normalize(text) {
+  return String(text || "").toLowerCase().replace(/[’]/g, "'");
+}
+
+function titleCase(value) {
+  return String(value)
+    .split(" ")
+    .map((word) => (word ? word[0].toUpperCase() + word.slice(1) : word))
+    .join(" ");
+}
+
+function escapeHTML(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+render();

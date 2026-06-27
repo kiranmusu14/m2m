@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="900" viewBox="0 0 900 900" role="img" aria-labelledby="title desc">
+  <title id="title">Signal map</title>
+  <desc id="desc">Abstract signal lines moving from pressure to clarity.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#e9eee5"/>
+      <stop offset="0.52" stop-color="#f7f8f3"/>
+      <stop offset="1" stop-color="#e2e9ef"/>
+    </linearGradient>
+    <linearGradient id="warm" x1="0" x2="1" y1="0" y2="0">
+      <stop offset="0" stop-color="#a8462d"/>
+      <stop offset="1" stop-color="#c2902e"/>
+    </linearGradient>
+    <linearGradient id="cool" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#315c7d"/>
+      <stop offset="1" stop-color="#446b54"/>
+    </linearGradient>
+  </defs>
+  <rect width="900" height="900" fill="url(#bg)"/>
+  <path d="M132 673C216 542 235 366 344 330c123-41 183 126 301 70 65-31 95-99 123-170" fill="none" stroke="#171817" stroke-opacity=".12" stroke-width="38" stroke-linecap="round"/>
+  <path d="M104 610c99-80 149-204 245-217 111-15 148 108 255 82 80-19 128-93 181-190" fill="none" stroke="url(#cool)" stroke-width="22" stroke-linecap="round"/>
+  <path d="M128 515c97-38 139-111 212-108 96 3 123 90 218 78 73-9 128-69 198-168" fill="none" stroke="url(#warm)" stroke-width="16" stroke-linecap="round"/>
+  <path d="M157 435c75-17 120-58 171-46 78 18 97 73 174 73 70 0 125-46 198-126" fill="none" stroke="#446b54" stroke-width="10" stroke-linecap="round"/>
+  <g fill="#171817" opacity=".78">
+    <circle cx="129" cy="673" r="12"/>
+    <circle cx="344" cy="330" r="12"/>
+    <circle cx="645" cy="400" r="12"/>
+    <circle cx="768" cy="230" r="12"/>
+  </g>
+  <g fill="#fff" stroke="#d9ddd3" stroke-width="4">
+    <rect x="98" y="110" width="170" height="54" rx="8"/>
+    <rect x="610" y="704" width="190" height="54" rx="8"/>
+    <rect x="118" y="744" width="240" height="54" rx="8"/>
+  </g>
+  <g fill="#171817" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="700" letter-spacing="0">
+    <text x="126" y="145">pressure</text>
+    <text x="641" y="739">pattern</text>
+    <text x="149" y="779">next honest step</text>
+  </g>
+</svg>
