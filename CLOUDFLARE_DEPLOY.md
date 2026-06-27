@@ -16,7 +16,7 @@ Use the Cloudflare Workers GitHub deploy flow. The frontend builds into `dist`, 
    - Root directory: `/`
 8. Add these variables in Cloudflare:
    - `GROQ_API_KEY` as a secret
-   - `GROQ_MODEL`
+   - `GROQ_MODEL` = `llama-3.1-8b-instant`
    - `GROQ_ANALYZE_MAX_COMPLETION_TOKENS`
    - `GROQ_CHAT_MAX_COMPLETION_TOKENS`
    - `SUPABASE_URL`

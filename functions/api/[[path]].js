@@ -410,7 +410,11 @@ async function callGroq({ config, instructions, schemaName, schema, input, maxCo
       messages: [
         {
           role: "system",
-          content: `${instructions}\nReturn only JSON. Do not include markdown, commentary, or extra text.`,
+          content: `${instructions}
+Return only a valid JSON object. Do not include markdown, commentary, or extra text.
+Return the answer object itself. Do not return a JSON schema. Do not include type, properties, required, or additionalProperties.
+The JSON object must match this schema:
+${JSON.stringify(schema)}`,
         },
         {
           role: "user",
@@ -419,14 +423,6 @@ async function callGroq({ config, instructions, schemaName, schema, input, maxCo
       ],
       temperature: 0.2,
       max_completion_tokens: maxCompletionTokens,
-      response_format: {
-        type: "json_schema",
-        json_schema: {
-          name: schemaName,
-          strict: true,
-          schema,
-        },
-      },
     }),
   });
 
@@ -444,7 +440,7 @@ async function callGroq({ config, instructions, schemaName, schema, input, maxCo
     throw new Error("Groq returned no text.");
   }
 
-  return JSON.parse(text);
+  return normalizeModelResult(parseModelJson(text));
 }
 
 async function supabaseRequest(config, endpoint, options = {}) {
@@ -487,7 +483,7 @@ function requireSupabase(config) {
 function getConfig(env) {
   return {
     groqApiKey: cleanText(env.GROQ_API_KEY, 2000),
-    groqModel: cleanText(env.GROQ_MODEL, 80) || "openai/gpt-oss-20b",
+    groqModel: cleanText(env.GROQ_MODEL, 80) || "llama-3.1-8b-instant",
     analyzeMaxCompletionTokens: readPositiveInt(env.GROQ_ANALYZE_MAX_COMPLETION_TOKENS, 220),
     chatMaxCompletionTokens: readPositiveInt(env.GROQ_CHAT_MAX_COMPLETION_TOKENS, 80),
     supabaseUrl: normalizeSupabaseUrl(env.SUPABASE_URL),
@@ -525,13 +521,52 @@ function extractGroqOutputText(data) {
   return data?.choices?.[0]?.message?.content || "";
 }
 
+function parseModelJson(text) {
+  const clean = String(text || "").trim().replace(/^```(?:json)?/i, "").replace(/```$/i, "").trim();
+  const start = clean.indexOf("{");
+  const end = clean.lastIndexOf("}");
+  const jsonText = start >= 0 && end > start ? clean.slice(start, end + 1) : clean;
+  return JSON.parse(jsonText);
+}
+
+function normalizeModelResult(result) {
+  const output =
+    result && !result.emotion && result.properties && typeof result.properties === "object"
+      ? { ...result.properties }
+      : { ...(result || {}) };
+
+  if (typeof output.crisis === "string") {
+    output.crisis = output.crisis.toLowerCase() === "true";
+  }
+
+  if (typeof output.emotionWords === "string") {
+    output.emotionWords = output.emotionWords
+      .split(/[,+]/)
+      .map((word) => word.trim())
+      .filter(Boolean);
+  }
+
+  delete output.type;
+  delete output.properties;
+  delete output.required;
+  delete output.additionalProperties;
+
+  return output;
+}
+
 function classifyGroqError(error, statusCode) {
   const message = cleanText(error?.message, 220);
   const code = cleanText(error?.code, 80);
   const type = cleanText(error?.type, 80);
   const lower = `${message} ${code} ${type}`.toLowerCase();
 
-  if (lower.includes("quota") || lower.includes("billing") || lower.includes("credits") || lower.includes("rate")) {
+  if (
+    statusCode === 429 ||
+    lower.includes("quota") ||
+    lower.includes("billing") ||
+    lower.includes("credits") ||
+    lower.includes("rate limit")
+  ) {
     return {
       kind: "quota",
       message: "Groq says this project has no available API quota, hit a rate limit, or hit a spend limit.",
