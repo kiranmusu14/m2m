@@ -173,6 +173,10 @@ export async function onRequest(context) {
     const pathname = requestUrl.pathname;
     const repliesMatch = pathname.match(/^\/api\/community-posts\/([^/]+)\/replies$/);
 
+    if (request.method === "GET" && pathname === "/api/health") {
+      return handleHealth(config);
+    }
+
     if (request.method === "POST" && pathname === "/api/analyze") {
       return await handleAnalyze(request, config);
     }
@@ -214,6 +218,16 @@ export async function onRequest(context) {
       apiError: error.apiError || null,
     });
   }
+}
+
+function handleHealth(config) {
+  return json(200, {
+    ok: true,
+    hasGroqApiKey: Boolean(config.groqApiKey),
+    groqModel: config.groqModel,
+    hasSupabaseUrl: Boolean(config.supabaseUrl),
+    hasSupabasePublishableKey: Boolean(config.supabasePublishableKey),
+  });
 }
 
 async function handleAnalyze(request, config) {

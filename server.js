@@ -192,6 +192,11 @@ const server = http.createServer(async (req, res) => {
     const pathname = requestUrl.pathname;
     const repliesMatch = pathname.match(/^\/api\/community-posts\/([^/]+)\/replies$/);
 
+    if (req.method === "GET" && pathname === "/api/health") {
+      handleHealth(res);
+      return;
+    }
+
     if (req.method === "POST" && pathname === "/api/analyze") {
       await handleAnalyze(req, res);
       return;
@@ -254,6 +259,16 @@ server.listen(port, () => {
     console.log("GROQ_API_KEY is missing. The browser will use the local fallback.");
   }
 });
+
+function handleHealth(res) {
+  sendJson(res, 200, {
+    ok: true,
+    hasGroqApiKey: Boolean(groqApiKey),
+    groqModel,
+    hasSupabaseUrl: Boolean(supabaseUrl),
+    hasSupabasePublishableKey: Boolean(supabasePublishableKey),
+  });
+}
 
 async function handleAnalyze(req, res) {
   const body = await readJson(req);
