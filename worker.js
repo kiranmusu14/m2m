@@ -8,6 +8,16 @@ export default {
       return handleApiRequest({ request, env, ctx });
     }
 
-    return env.ASSETS.fetch(request);
+    if (env.ASSETS?.fetch) {
+      return env.ASSETS.fetch(request);
+    }
+
+    return new Response(
+      "Static asset binding is missing. In Cloudflare, deploy this Worker from GitHub with build command `npm run build` and deploy command `npx wrangler deploy`, so wrangler.toml uploads ./dist as the ASSETS binding.",
+      {
+        status: 500,
+        headers: { "Content-Type": "text/plain; charset=utf-8" },
+      }
+    );
   },
 };
