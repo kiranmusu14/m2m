@@ -3,6 +3,7 @@ const pages = [
   ["checkin", "Check-In"],
   ["reset", "Reset"],
   ["talk", "Hard Talks"],
+  ["daily", "Daily"],
   ["community", "Community"],
   ["guide", "AI Guide"],
 ];
@@ -29,6 +30,19 @@ const state = {
   talkLoading: false,
   talkError: "",
 };
+
+const starterCircles = [
+  ["Breakups", "Get through the replay without losing your dignity."],
+  ["Marriage", "Stay honest inside the hardest partnership there is."],
+  ["Fatherhood", "Raise them right while you're still figuring yourself out."],
+  ["Divorce", "Rebuild when the ground moves under you."],
+  ["Career stress", "Pressure, money, and work without the spiral."],
+  ["Loneliness", "Connection without performing."],
+  ["Purpose", "Figure out what the next chapter is actually for."],
+  ["Addiction recovery", "One day at a time, with men who get it."],
+  ["Grief", "Carry the loss without carrying it alone."],
+  ["Anger", "Use the signal without burning what matters."],
+];
 
 const checkInChips = [
   "Angry",
@@ -230,6 +244,84 @@ const localReads = {
   stress: ["This looks like stress and pressure.", "What needs attention first?"],
 };
 
+const emotionLibrary = {
+  anger: {
+    what: "Anger is a signal that a line got crossed, or that hurt is hiding underneath.",
+    why: "Your body preps for a fight before your brain votes on it. That's wiring, not character.",
+    steps: ["Delay the reaction 20 minutes.", "Name the line that got crossed in one plain sentence.", "Pick the response you'd respect tomorrow."],
+  },
+  sadness: {
+    what: "Sadness is the weight of losing something that mattered.",
+    why: "It slows you down on purpose so you can process the loss instead of outrunning it.",
+    steps: ["Name what you lost, out loud or on paper.", "Tell one person one honest sentence.", "Do one kind thing for yourself tonight."],
+  },
+  stress: {
+    what: "Stress is too much demand hitting too little capacity.",
+    why: "Your system treats a full inbox like a threat. The pressure is real; the emergency usually isn't.",
+    steps: ["Write everything down, once.", "Pick the single loudest thing.", "Park the rest until tomorrow."],
+  },
+  overwhelm: {
+    what: "Overwhelm is every problem talking at the same time.",
+    why: "The brain can't rank ten fires at once, so it freezes or spins.",
+    steps: ["Pick one controllable thing.", "Do ten minutes of it.", "Let done beat perfect."],
+  },
+  rumination: {
+    what: "Rumination is your mind replaying the same tape looking for certainty.",
+    why: "The loop feels like problem-solving, but it never closes because it wants a guarantee that doesn't exist.",
+    steps: ["Write the loop down once.", "Give it a 10-minute slot later today.", "Move your body to change the channel."],
+  },
+  panic: {
+    what: "Panic is a false alarm at full volume: body first, story second.",
+    why: "Your alarm system fired without checking the facts. It's frightening, not dangerous.",
+    steps: ["Breathe out longer than in, ten times.", "Name 5 things you can see.", "Face the next ten minutes only."],
+  },
+  anxiety: {
+    what: "Anxiety is your mind rehearsing a future that hasn't happened.",
+    why: "It's a prediction machine that overweights threat when you're tired, stretched, or uncertain.",
+    steps: ["Write the exact prediction down.", "Mark what you control vs. don't.", "Act on one controllable piece now."],
+  },
+  numbness: {
+    what: "Numbness is the system going quiet after carrying too much for too long.",
+    why: "Shutting down is protection. It kept you moving; now it's costing you connection.",
+    steps: ["Do one small physical thing.", "Name when you went quiet.", "Let one safe person know you're flat."],
+  },
+  shame: {
+    what: "Shame says YOU are the problem, instead of the thing you did.",
+    why: "It grows in silence and self-attack, and shrinks the moment it's said out loud to someone safe.",
+    steps: ["Write the facts without insults.", "Say what you'd tell a brother in your spot.", "Make one honest repair if one exists."],
+  },
+  guilt: {
+    what: "Guilt is your values telling you an action missed the mark.",
+    why: "Unlike shame, guilt is useful: it points at behavior you can actually repair.",
+    steps: ["Separate repair from punishment.", "Make the clean apology or fix.", "Then let the debt close."],
+  },
+  loneliness: {
+    what: "Loneliness is the gap between the connection you have and the connection you need.",
+    why: "You're wired to need people. The signal is healthy; isolation is what does the damage.",
+    steps: ["Pick the safest person you know.", "Send one honest sentence.", "Say yes to the next small invite."],
+  },
+  hurt: {
+    what: "Hurt is the bruise left when someone or something hit a soft spot.",
+    why: "It often dresses up as anger because anger feels stronger than pain.",
+    steps: ["Name what actually hurt.", "Decide what needs saying, and to whom.", "Say it clean, without the ammo."],
+  },
+  heartbreak: {
+    what: "Heartbreak is withdrawal from a person who felt like oxygen.",
+    why: "Your brain treats the loss like a chemical crash. The craving to check on them is real and it fades.",
+    steps: ["Stop checking their pages today.", "Write the message; don't send it.", "Text someone who has your back."],
+  },
+  "low mood": {
+    what: "Low mood is heaviness that makes everything cost double.",
+    why: "Sleep debt, isolation, and stress stack up quietly. The mood is real; its story about you is not.",
+    steps: ["Water, shower, or a short walk first.", "Tell one person it's a heavy day.", "Lower the bar and do one small thing."],
+  },
+  unsafe: {
+    what: "This is beyond a rough patch. This needs another human, now.",
+    why: "When the mind offers permanent exits to temporary pain, it's overloaded, not truthful.",
+    steps: ["Call or text 988 right now.", "Stay with or near someone tonight.", "Remove what could hurt you from reach."],
+  },
+};
+
 const emotionLabelMap = {
   unsafe: "Unsafe",
   anger: "Anger",
@@ -341,12 +433,46 @@ function render() {
     <main>
       ${renderPage()}
     </main>
+    ${renderFooter()}
   `;
   bindPageEvents();
 
   if (state.page === "community" && !state.communityLoaded && !state.communityLoading) {
     loadCommunities();
   }
+}
+
+function renderFooter() {
+  return `
+    <footer class="site-footer">
+      <div class="footer-crisis">
+        <div>
+          <strong>In a bad spot right now?</strong>
+          <p>If you're thinking about hurting yourself or someone else, don't wait this one out alone.</p>
+        </div>
+        <a class="crisis-button" href="tel:988">Call or text 988</a>
+      </div>
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <span class="brand-mark">M2M</span>
+          <p>Real support for men. No judgment. No bullshit. The place men go before they hit the wall.</p>
+        </div>
+        <div class="footer-links">
+          <span>Tools</span>
+          <button data-page="checkin" type="button">Check-In</button>
+          <button data-page="reset" type="button">Reset Center</button>
+          <button data-page="talk" type="button">Hard Talks</button>
+          <button data-page="daily" type="button">Daily</button>
+        </div>
+        <div class="footer-links">
+          <span>People</span>
+          <button data-page="community" type="button">Community</button>
+          <button data-page="guide" type="button">AI Guide</button>
+        </div>
+      </div>
+      <p class="footer-disclaimer">Man to Man is not therapy and does not replace professional mental health care. If you are in crisis, call or text 988 (US) or your local emergency services.</p>
+    </footer>
+  `;
 }
 
 function renderHeader() {
@@ -373,6 +499,7 @@ function renderPage() {
   if (state.page === "checkin") return renderCheckIn();
   if (state.page === "reset") return renderReset();
   if (state.page === "talk") return renderTalk();
+  if (state.page === "daily") return renderDaily();
   if (state.page === "community") return renderCommunity();
   if (state.page === "guide") return renderGuide();
   return renderHome();
@@ -416,14 +543,68 @@ function renderHome() {
 
     <section class="section-band two-column">
       <div>
-        <p class="eyebrow">MVP</p>
+        <p class="eyebrow">How it works</p>
         <h2>One tight loop.</h2>
-        <p class="body-copy">Check in with rough words, get a plain read, run a 10-minute reset, talk it through, and find men who get it. Enough to test the real behavior before building the full platform.</p>
+        <p class="body-copy">Check in with rough words, get a plain read, run a 10-minute reset, prepare the hard talk, and find men who get it. Action over analysis, every time.</p>
       </div>
       <div class="roadmap-list">
-        ${["Check in with rough words", "Get a plain emotion label", "Talk to the guide", "Post or join a circle"]
+        ${["Check in with rough words", "Get a plain emotion label", "Run a 10-minute reset", "Talk it through with the guide", "Post or join a circle", "Track the basics daily"]
           .map((item, index) => `<div class="roadmap-item"><span>${index + 1}</span><p>${item}</p></div>`)
           .join("")}
+      </div>
+    </section>
+
+    <section class="section-band">
+      <div class="section-heading">
+        <p class="eyebrow">What men say</p>
+        <h2>Not performing. Just talking.</h2>
+      </div>
+      <div class="testimonial-grid">
+        ${[
+          ["\u201CI typed three angry sentences and it named what I couldn't. That alone lowered the temperature.\u201D", "Early tester, 34"],
+          ["\u201CNo hype, no shame. It told me to wait 20 minutes before replying to my ex. I did. Glad I did.\u201D", "Early tester, 28"],
+          ["\u201CThe circle for fathers is the first place I've said the quiet stuff out loud.\u201D", "Early tester, 41"],
+        ]
+          .map(
+            ([quote, who]) => `
+              <figure class="testimonial-card">
+                <blockquote>${quote}</blockquote>
+                <figcaption>${who}</figcaption>
+              </figure>
+            `
+          )
+          .join("")}
+      </div>
+      <p class="placeholder-note">Placeholder quotes from early testing. Real stories land here as the brotherhood grows.</p>
+    </section>
+
+    <section class="section-band">
+      <div class="section-heading">
+        <p class="eyebrow">Community preview</p>
+        <h2>Circles for what you're actually carrying.</h2>
+      </div>
+      <div class="circle-preview-grid">
+        ${starterCircles
+          .slice(0, 8)
+          .map(
+            ([name, blurb]) => `
+              <button class="circle-preview" data-page="community" type="button">
+                <strong>${name}</strong>
+                <p>${blurb}</p>
+              </button>
+            `
+          )
+          .join("")}
+      </div>
+    </section>
+
+    <section class="section-band">
+      <div class="join-band">
+        <div>
+          <h2>Stop carrying it alone.</h2>
+          <p>Anonymous. Free to start. One honest check-in is enough to begin.</p>
+        </div>
+        <button class="primary-button" data-page="checkin" type="button">Join with a check-in</button>
       </div>
     </section>
   `;
@@ -476,9 +657,33 @@ function renderDiagnosis() {
           ? `<a class="inline-crisis" href="tel:988">${escapeHTML(state.analysis.crisisText || "Call or text 988 now.")}</a>`
           : ""
       }
+      ${renderEmotionInsight(state.analysis.emotion)}
       <div class="diagnosis-actions">
         <button class="primary-button" data-page="guide" type="button">Talk it through</button>
+        <button class="secondary-button" data-page="reset" type="button">Run a reset</button>
         <button class="secondary-button" id="reset-checkin" type="button">Start over</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderEmotionInsight(emotion) {
+  const info = emotionLibrary[canonicalEmotion(emotion)];
+  if (!info) return "";
+
+  return `
+    <div class="insight-grid">
+      <div class="insight-block">
+        <span>What it is</span>
+        <p>${escapeHTML(info.what)}</p>
+      </div>
+      <div class="insight-block">
+        <span>Why it happens</span>
+        <p>${escapeHTML(info.why)}</p>
+      </div>
+      <div class="insight-block">
+        <span>Next steps</span>
+        <ul>${info.steps.map((step) => `<li>${escapeHTML(step)}</li>`).join("")}</ul>
       </div>
     </div>
   `;
@@ -562,6 +767,117 @@ function renderResetGuide(guide) {
 }
 
 const talkPeople = ["Partner", "Ex", "Parent", "Friend", "Boss", "Coworker", "Sibling", "My kid"];
+
+const dailyHabits = [
+  ["exercise", "Moved your body"],
+  ["sleep", "Slept 7+ hours"],
+  ["outside", "Time outside"],
+  ["journal", "Wrote something down"],
+  ["reachout", "Reached out to a friend"],
+  ["honest", "One honest conversation"],
+];
+
+const DAILY_KEY = "m2m-daily-v1";
+
+function loadDailyLog() {
+  try {
+    return JSON.parse(localStorage.getItem(DAILY_KEY)) || {};
+  } catch {
+    return {};
+  }
+}
+
+function saveDailyLog(log) {
+  try {
+    localStorage.setItem(DAILY_KEY, JSON.stringify(log));
+  } catch {
+    // Private mode or storage full; the day just won't persist.
+  }
+}
+
+function dateKey(offsetDays = 0) {
+  const date = new Date();
+  date.setDate(date.getDate() - offsetDays);
+  return date.toISOString().slice(0, 10);
+}
+
+function dailyStreak(log) {
+  let streak = 0;
+  let offset = (log[dateKey(0)] || []).length ? 0 : 1;
+  while ((log[dateKey(offset)] || []).length) {
+    streak += 1;
+    offset += 1;
+  }
+  return streak;
+}
+
+function renderDaily() {
+  const log = loadDailyLog();
+  const today = log[dateKey(0)] || [];
+  const streak = dailyStreak(log);
+
+  const week = Array.from({ length: 7 }, (_, index) => {
+    const offset = 6 - index;
+    const count = (log[dateKey(offset)] || []).length;
+    const label = new Date(Date.now() - offset * 86400000).toLocaleDateString(undefined, { weekday: "narrow" });
+    return { count, label, isToday: offset === 0 };
+  });
+
+  return `
+    <section class="workspace daily-workspace">
+      <div class="workspace-copy">
+        <p class="eyebrow">Daily accountability</p>
+        <h1>Consistency, not perfection.</h1>
+        <p>Six basics that keep a man steady. Check what you did today. Missing a day means nothing; quitting the week does.</p>
+        <div class="streak-chip">
+          <strong>${streak}</strong>
+          <span>day streak</span>
+        </div>
+      </div>
+      <div class="tool-panel daily-panel">
+        <div class="habit-list">
+          ${dailyHabits
+            .map(
+              ([id, label]) => `
+                <button class="habit-row ${today.includes(id) ? "is-done" : ""}" type="button" data-habit="${id}">
+                  <span class="habit-check" aria-hidden="true">${today.includes(id) ? "&#10003;" : ""}</span>
+                  <span>${label}</span>
+                </button>
+              `
+            )
+            .join("")}
+        </div>
+        <div class="week-strip">
+          ${week
+            .map(
+              (day) => `
+                <div class="week-day ${day.isToday ? "is-today" : ""}">
+                  <div class="week-bar"><span style="height: ${Math.round((day.count / dailyHabits.length) * 100)}%"></span></div>
+                  <small>${escapeHTML(day.label)}</small>
+                </div>
+              `
+            )
+            .join("")}
+        </div>
+        <p class="daily-note">${today.length ? `${today.length} of ${dailyHabits.length} today. ${today.length >= 3 ? "Solid." : "Every check counts."}` : "Nothing checked yet today. Start with the easiest one."}</p>
+      </div>
+    </section>
+  `;
+}
+
+function toggleHabit(id) {
+  const log = loadDailyLog();
+  const key = dateKey(0);
+  const today = new Set(log[key] || []);
+  if (today.has(id)) {
+    today.delete(id);
+  } else {
+    today.add(id);
+  }
+  log[key] = [...today];
+  saveDailyLog(log);
+  render();
+}
 
 function renderTalk() {
   return `
@@ -745,6 +1061,14 @@ function renderCommunity() {
           </form>
           <h2>Communities</h2>
           ${renderCommunityList()}
+          <h2>Start a circle</h2>
+          <div class="starter-grid">
+            ${starterCircles
+              .map(
+                ([name]) => `<button class="prompt-chip" type="button" data-starter-circle="${escapeHTML(name)}">${name}</button>`
+              )
+              .join("")}
+          </div>
           <h2>Rules</h2>
           <ul class="rule-list">
             <li>Respect</li>
@@ -944,6 +1268,31 @@ function bindPageEvents() {
     state.talkPlan = null;
     state.talkError = "";
     render();
+  });
+
+  document.querySelectorAll("[data-habit]").forEach((button) => {
+    button.addEventListener("click", () => toggleHabit(button.dataset.habit));
+  });
+
+  document.querySelectorAll("[data-starter-circle]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const name = button.dataset.starterCircle;
+      const existing = state.communities.find(
+        (community) => community.name.toLowerCase() === name.toLowerCase()
+      );
+
+      if (existing) {
+        state.activeCommunityId = existing.id;
+        state.activeCommunityName = existing.name;
+        state.communityPosts = [];
+        state.communityReplies = {};
+        await loadCommunityPosts();
+        return;
+      }
+
+      const blurb = starterCircles.find(([circleName]) => circleName === name)?.[1] || "";
+      await createCommunity({ name, description: blurb });
+    });
   });
 
   document.querySelectorAll("[data-community-id]").forEach((button) => {
