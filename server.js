@@ -126,6 +126,62 @@ const chatSchema = {
   additionalProperties: false,
 };
 
+const conversationSchema = {
+  type: "object",
+  properties: {
+    opener: {
+      type: "string",
+      description: "The exact first sentence to open the conversation with. Max 30 words.",
+    },
+    points: {
+      type: "array",
+      items: { type: "string" },
+      minItems: 3,
+      maxItems: 5,
+      description: "Talking points in plain words, one sentence each.",
+    },
+    script: {
+      type: "array",
+      items: { type: "string" },
+      minItems: 3,
+      maxItems: 6,
+      description: "Short example lines to say, in order, each under 25 words.",
+    },
+    ifHeated: {
+      type: "array",
+      items: { type: "string" },
+      minItems: 2,
+      maxItems: 3,
+      description: "What to do or say if the conversation gets heated.",
+    },
+    avoid: {
+      type: "array",
+      items: { type: "string" },
+      minItems: 2,
+      maxItems: 4,
+      description: "Phrases or moves to avoid.",
+    },
+  },
+  required: ["opener", "points", "script", "ifHeated", "avoid"],
+  additionalProperties: false,
+};
+
+const conversationInstructions = `
+You are Man to Man, helping a man prepare for a hard conversation.
+Sound like a calm older brother, not a coach or a therapist.
+Plain words. No jargon. No corporate phrasing. No manipulation tactics.
+The goal is honesty plus respect: he says the real thing without blowing up the relationship.
+Rules:
+- The opener must be soft but direct, and signal he wants to sort it out, not win.
+- Talking points cover his side AND make room for theirs.
+- Script lines are things a real man would actually say out loud, in order.
+- "I" statements over "you always" accusations.
+- If it gets heated: pause, lower voice, name the goal again, offer to continue later.
+- Never coach him to threaten, guilt-trip, stonewall, or dominate.
+- Do not turn the other person into an enemy.
+- Keep every line short and speakable.
+`;
+
 const analysisInstructions = `
 You are Man to Man, a plain-spoken emotional classifier and support chatbot for men.
 The user may not know what he feels. Classify from his own words.
@@ -204,6 +260,11 @@ const server = http.createServer(async (req, res) => {
 
     if (req.method === "POST" && pathname === "/api/chat") {
       await handleChat(req, res);
+      return;
+    }
+
+    if (req.method === "POST" && pathname === "/api/conversation") {
+      await handleConversation(req, res);
       return;
     }
 
@@ -329,6 +390,33 @@ Context, for your understanding only (do not read it back to him):
 - Tone reminder: ${getToneGuidance(analysis.tone, analysis.emotion)}
 
 Now answer his LAST message directly. React to the specific thing he just said in his own words. Do NOT fall back on generic breathing or grounding lines unless he is clearly panicking. Ask one real question or give one concrete next step. Never repeat an earlier reply.`;
+}
+
+async function handleConversation(req, res) {
+  const body = await readJson(req);
+  const who = cleanText(body.who, 60);
+  const situation = cleanText(body.situation, 900);
+  const goal = cleanText(body.goal, 300);
+
+  if (!who || situation.length < 10) {
+    sendJson(res, 400, { error: "conversation_required" });
+    return;
+  }
+
+  const result = await callGroq({
+    instructions: conversationInstructions,
+    schema: conversationSchema,
+    input: {
+      talking_to: who,
+      situation,
+      what_he_wants: goal || "Be heard and keep the relationship intact.",
+      task: "Prepare him for this conversation.",
+    },
+    temperature: 0.5,
+    maxCompletionTokens: 600,
+  });
+
+  sendJson(res, 200, result);
 }
 
 async function handleListCommunities(res) {

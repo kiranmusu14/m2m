@@ -2,6 +2,7 @@ const pages = [
   ["home", "Home"],
   ["checkin", "Check-In"],
   ["reset", "Reset"],
+  ["talk", "Hard Talks"],
   ["community", "Community"],
   ["guide", "AI Guide"],
 ];
@@ -23,6 +24,10 @@ const state = {
   communityPosts: [],
   activeReset: null,
   resetStep: 0,
+  talkWho: "",
+  talkPlan: null,
+  talkLoading: false,
+  talkError: "",
 };
 
 const checkInChips = [
@@ -367,6 +372,7 @@ function renderHeader() {
 function renderPage() {
   if (state.page === "checkin") return renderCheckIn();
   if (state.page === "reset") return renderReset();
+  if (state.page === "talk") return renderTalk();
   if (state.page === "community") return renderCommunity();
   if (state.page === "guide") return renderGuide();
   return renderHome();
@@ -552,6 +558,101 @@ function renderResetGuide(guide) {
         ${body}
       </div>
     </section>
+  `;
+}
+
+const talkPeople = ["Partner", "Ex", "Parent", "Friend", "Boss", "Coworker", "Sibling", "My kid"];
+
+function renderTalk() {
+  return `
+    <section class="workspace talk-workspace">
+      <div class="workspace-copy">
+        <p class="eyebrow">Hard Conversation Builder</p>
+        <h1>Say the real thing without blowing it up.</h1>
+        <p>Tell it rough. You get an opener, talking points, a short script, and what to do if it gets heated.</p>
+      </div>
+      <div class="tool-panel">
+        ${state.talkLoading ? renderTalkLoading() : state.talkPlan ? renderTalkPlan() : renderTalkForm()}
+      </div>
+    </section>
+  `;
+}
+
+function renderTalkForm() {
+  return `
+    <form class="checkin-form" id="talk-form">
+      <div>
+        <p class="talk-label">Who is this conversation with?</p>
+        <div class="chip-grid">
+          ${talkPeople
+            .map(
+              (person) => `
+                <button
+                  class="prompt-chip ${state.talkWho === person ? "is-selected" : ""}"
+                  type="button"
+                  data-talk-who="${escapeHTML(person)}"
+                >${person}</button>
+              `
+            )
+            .join("")}
+        </div>
+      </div>
+      <label class="talk-label" for="talk-situation">What's going on?</label>
+      <textarea id="talk-situation" placeholder="Example: My dad keeps criticizing how I raise my son and I keep swallowing it, then exploding later."></textarea>
+      <label class="talk-label" for="talk-goal">What do you want out of it? (optional)</label>
+      <input id="talk-goal" maxlength="300" placeholder="Example: I want him to back off without cutting him out." />
+      <p class="error-text" id="talk-error">${escapeHTML(state.talkError)}</p>
+      <button class="primary-button" type="submit">Build the conversation</button>
+    </form>
+  `;
+}
+
+function renderTalkLoading() {
+  return `
+    <div class="loading-inline">
+      <span class="loading-dot"></span>
+      <p class="eyebrow">Working on it</p>
+      <h2>Building your talking points.</h2>
+    </div>
+  `;
+}
+
+function renderTalkPlan() {
+  const plan = state.talkPlan;
+  const list = (items) =>
+    (Array.isArray(items) ? items : [])
+      .map((item) => `<li>${escapeHTML(item)}</li>`)
+      .join("");
+
+  return `
+    <div class="talk-plan">
+      <div class="talk-block talk-opener">
+        <span class="talk-block-label">Open with this</span>
+        <h2>&ldquo;${escapeHTML(plan.opener)}&rdquo;</h2>
+      </div>
+      <div class="talk-block">
+        <span class="talk-block-label">Your talking points</span>
+        <ul>${list(plan.points)}</ul>
+      </div>
+      <div class="talk-block">
+        <span class="talk-block-label">A script to lean on</span>
+        <ol>${list(plan.script)}</ol>
+      </div>
+      <div class="talk-columns">
+        <div class="talk-block">
+          <span class="talk-block-label">If it gets heated</span>
+          <ul>${list(plan.ifHeated)}</ul>
+        </div>
+        <div class="talk-block is-avoid">
+          <span class="talk-block-label">Don't say</span>
+          <ul>${list(plan.avoid)}</ul>
+        </div>
+      </div>
+      <div class="diagnosis-actions">
+        <button class="secondary-button" id="talk-restart" type="button">Build another</button>
+        <button class="primary-button" data-page="guide" type="button">Talk it through first</button>
+      </div>
+    </div>
   `;
 }
 
@@ -822,6 +923,26 @@ function bindPageEvents() {
   document.querySelector("[data-reset-exit]")?.addEventListener("click", () => {
     state.activeReset = null;
     state.resetStep = 0;
+    render();
+  });
+
+  document.querySelectorAll("[data-talk-who]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.talkWho = button.dataset.talkWho;
+      document.querySelectorAll("[data-talk-who]").forEach((chip) => {
+        chip.classList.toggle("is-selected", chip.dataset.talkWho === state.talkWho);
+      });
+    });
+  });
+
+  document.querySelector("#talk-form")?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    await buildConversation();
+  });
+
+  document.querySelector("#talk-restart")?.addEventListener("click", () => {
+    state.talkPlan = null;
+    state.talkError = "";
     render();
   });
 
@@ -1157,6 +1278,38 @@ async function analyzeEntry(entry) {
   }
 
   return { ...localAnalyze(entry), local: true };
+}
+
+async function buildConversation() {
+  const situation = document.querySelector("#talk-situation")?.value.trim() || "";
+  const goal = document.querySelector("#talk-goal")?.value.trim() || "";
+
+  if (!state.talkWho) {
+    state.talkError = "Pick who the conversation is with.";
+    render();
+    return;
+  }
+
+  if (situation.split(/\s+/).filter(Boolean).length < 4) {
+    state.talkError = "Give a few more words about what's going on.";
+    render();
+    return;
+  }
+
+  state.talkError = "";
+  state.talkLoading = true;
+  render();
+
+  try {
+    const plan = await postJSON("/api/conversation", { who: state.talkWho, situation, goal });
+    if (!plan?.opener) throw new Error("The builder came back empty. Try again.");
+    state.talkPlan = plan;
+  } catch (error) {
+    state.talkError = error.message || "Could not build the conversation. Try again.";
+  } finally {
+    state.talkLoading = false;
+    render();
+  }
 }
 
 async function sendChatMessage() {
