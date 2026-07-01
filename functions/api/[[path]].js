@@ -263,31 +263,32 @@ async function handleChat(request, config) {
     return json(400, { error: "message_required" });
   }
 
+  const conversation = messages.map((message) => ({
+    role: message.role === "bot" ? "assistant" : "user",
+    content: message.text,
+  }));
+
   const result = await callGroq({
     config,
-    instructions: chatInstructions,
-    schemaName: "m2m_chat_reply",
+    instructions: buildChatInstructions(entry, analysis),
     schema: chatSchema,
-    input: {
-      original_words: entry,
-      classified_emotion: analysis.emotion,
-      tone: analysis.tone,
-      tone_guidance: getToneGuidance(analysis.tone, analysis.emotion),
-      short_read: analysis.shortRead,
-      key_phrase: analysis.keyPhrase,
-      chat: messages,
-      user_turn_count: messages.filter((message) => message.role === "user").length,
-      last_bot_reply: [...messages].reverse().find((message) => message.role === "bot")?.text || "",
-      recent_bot_replies: messages
-        .filter((message) => message.role === "bot")
-        .slice(-3)
-        .map((message) => message.text),
-      task: "Reply briefly and keep the conversation moving.",
-    },
+    conversation,
+    temperature: 0.5,
     maxCompletionTokens: config.chatMaxCompletionTokens,
   });
 
   return json(200, result);
+}
+
+function buildChatInstructions(entry, analysis) {
+  return `${chatInstructions}
+
+Context, for your understanding only (do not read it back to him):
+- What he first typed: "${entry}"
+- You already read this as: ${analysis.emotion || "unclear"} (tone: ${analysis.tone || "steady"}).
+- Tone reminder: ${getToneGuidance(analysis.tone, analysis.emotion)}
+
+Now answer his LAST message directly. React to the specific thing he just said in his own words. Do NOT fall back on generic breathing or grounding lines unless he is clearly panicking. Ask one real question or give one concrete next step. Never repeat an earlier reply.`;
 }
 
 async function handleListCommunities(config) {
@@ -421,11 +422,30 @@ async function handleCreatePostReply(postId, request, config) {
   return json(201, formatReply(reply));
 }
 
-async function callGroq({ config, instructions, schemaName, schema, input, maxCompletionTokens }) {
+async function callGroq({ config, instructions, schema, input, conversation, temperature, maxCompletionTokens }) {
   if (!config.groqApiKey) {
     const error = new Error("GROQ_API_KEY is missing.");
     error.statusCode = 503;
     throw error;
+  }
+
+  const messages = [
+    {
+      role: "system",
+      content: `${instructions}
+Return only a valid JSON object. Do not include markdown, commentary, or extra text.
+Return the answer object itself. Do not return a JSON schema. Do not include type, properties, required, or additionalProperties.
+The JSON object must match this schema:
+${JSON.stringify(schema)}`,
+    },
+  ];
+
+  if (Array.isArray(conversation) && conversation.length) {
+    for (const turn of conversation) {
+      messages.push({ role: turn.role, content: turn.content });
+    }
+  } else {
+    messages.push({ role: "user", content: JSON.stringify(input) });
   }
 
   const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
@@ -436,22 +456,10 @@ async function callGroq({ config, instructions, schemaName, schema, input, maxCo
     },
     body: JSON.stringify({
       model: config.groqModel,
-      messages: [
-        {
-          role: "system",
-          content: `${instructions}
-Return only a valid JSON object. Do not include markdown, commentary, or extra text.
-Return the answer object itself. Do not return a JSON schema. Do not include type, properties, required, or additionalProperties.
-The JSON object must match this schema:
-${JSON.stringify(schema)}`,
-        },
-        {
-          role: "user",
-          content: JSON.stringify(input),
-        },
-      ],
-      temperature: 0.2,
+      messages,
+      temperature: typeof temperature === "number" ? temperature : 0.2,
       max_completion_tokens: maxCompletionTokens,
+      response_format: { type: "json_object" },
     }),
   });
 
@@ -568,9 +576,9 @@ function requireSupabase(config) {
 function getConfig(env) {
   return {
     groqApiKey: cleanText(env.GROQ_API_KEY, 2000),
-    groqModel: cleanText(env.GROQ_MODEL, 80) || "llama-3.1-8b-instant",
+    groqModel: cleanText(env.GROQ_MODEL, 80) || "llama-3.3-70b-versatile",
     analyzeMaxCompletionTokens: readPositiveInt(env.GROQ_ANALYZE_MAX_COMPLETION_TOKENS, 220),
-    chatMaxCompletionTokens: readPositiveInt(env.GROQ_CHAT_MAX_COMPLETION_TOKENS, 80),
+    chatMaxCompletionTokens: readPositiveInt(env.GROQ_CHAT_MAX_COMPLETION_TOKENS, 200),
     supabaseUrl: normalizeSupabaseUrl(env.SUPABASE_URL),
     supabasePublishableKey:
       cleanText(env.SUPABASE_PUBLISHABLE_KEY, 2000) || cleanText(env.SUPABASE_ANON_KEY, 2000),
