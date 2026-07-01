@@ -1,18 +1,18 @@
 :root {
   color-scheme: dark;
-  --ink: #f7f2ea;
-  --muted: #b1a596;
-  --soft: #ddd2c1;
-  --bg: #16110d;
-  --bg-2: #1c1712;
-  --panel: rgba(38, 31, 25, 0.82);
-  --panel-2: #2b241d;
-  --line: rgba(255, 238, 214, 0.09);
-  --line-strong: rgba(255, 238, 214, 0.18);
-  --amber: #e7ac60;
-  --amber-deep: #d3924a;
-  --amber-soft: rgba(231, 172, 96, 0.14);
-  --clay: #cf7c5e;
+  --ink: #f2f5fb;
+  --muted: #9aa8c0;
+  --soft: #cbd6ea;
+  --bg: #0c111c;
+  --bg-2: #111828;
+  --panel: rgba(23, 31, 48, 0.82);
+  --panel-2: #1c2639;
+  --line: rgba(214, 228, 255, 0.09);
+  --line-strong: rgba(214, 228, 255, 0.18);
+  --accent: #6ea3ff;
+  --accent-deep: #3e7bdf;
+  --accent-soft: rgba(110, 163, 255, 0.14);
+  --clay: #7c94e8;
   --sage: #8fae8b;
   --danger: #ff9c83;
   --shadow: 0 26px 60px rgba(0, 0, 0, 0.42);
@@ -34,8 +34,8 @@ body {
   min-height: 100vh;
   margin: 0;
   background:
-    radial-gradient(1100px 600px at 12% -5%, rgba(231, 172, 96, 0.07), transparent 60%),
-    radial-gradient(900px 520px at 95% 8%, rgba(207, 124, 94, 0.06), transparent 55%),
+    radial-gradient(1100px 600px at 12% -5%, rgba(110, 163, 255, 0.07), transparent 60%),
+    radial-gradient(900px 520px at 95% 8%, rgba(124, 148, 232, 0.06), transparent 55%),
     var(--bg);
   color: var(--ink);
   font-family:
@@ -66,7 +66,7 @@ button {
   gap: 18px;
   padding: 0 clamp(16px, 4vw, 48px);
   border-bottom: 1px solid var(--line);
-  background: rgba(22, 17, 13, 0.82);
+  background: rgba(12, 17, 28, 0.82);
   backdrop-filter: blur(20px);
 }
 
@@ -96,11 +96,11 @@ button {
   display: grid;
   place-items: center;
   border-radius: 13px;
-  background: linear-gradient(150deg, var(--amber), var(--amber-deep));
-  color: #241708;
+  background: linear-gradient(150deg, var(--accent), var(--accent-deep));
+  color: #081120;
   font-size: 0.72rem;
   font-weight: 900;
-  box-shadow: 0 6px 16px rgba(231, 172, 96, 0.28);
+  box-shadow: 0 6px 16px rgba(110, 163, 255, 0.28);
 }
 
 .main-nav {
@@ -120,7 +120,7 @@ button {
 
 .main-nav button.is-active,
 .main-nav button:hover {
-  background: var(--amber-soft);
+  background: var(--accent-soft);
   color: var(--ink);
 }
 
@@ -137,10 +137,10 @@ button {
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(1200px 620px at 16% 12%, rgba(231, 172, 96, 0.18), transparent 58%),
-    radial-gradient(900px 520px at 88% 88%, rgba(207, 124, 94, 0.16), transparent 55%),
+    radial-gradient(1200px 620px at 16% 12%, rgba(110, 163, 255, 0.18), transparent 58%),
+    radial-gradient(900px 520px at 88% 88%, rgba(124, 148, 232, 0.16), transparent 55%),
     radial-gradient(700px 500px at 65% 20%, rgba(143, 174, 139, 0.08), transparent 60%),
-    linear-gradient(158deg, #201a15 0%, #16110d 58%, #120e0a 100%);
+    linear-gradient(158deg, #16203a 0%, #0c111c 58%, #0a0e18 100%);
 }
 
 .hero-bg::after {
@@ -163,7 +163,7 @@ button {
 
 .eyebrow {
   margin: 0 0 14px;
-  color: var(--amber);
+  color: var(--accent);
   font-size: 0.78rem;
   font-weight: 800;
   letter-spacing: 0.12em;
@@ -231,14 +231,14 @@ h3 {
 }
 
 .primary-button {
-  background: linear-gradient(150deg, var(--amber), var(--amber-deep));
-  color: #241708;
-  box-shadow: 0 12px 26px rgba(231, 172, 96, 0.24);
+  background: linear-gradient(150deg, var(--accent), var(--accent-deep));
+  color: #081120;
+  box-shadow: 0 12px 26px rgba(110, 163, 255, 0.24);
 }
 
 .primary-button:hover {
   transform: translateY(-1px);
-  box-shadow: 0 16px 32px rgba(231, 172, 96, 0.34);
+  box-shadow: 0 16px 32px rgba(110, 163, 255, 0.34);
 }
 
 .primary-button:active {
@@ -252,7 +252,7 @@ h3 {
 }
 
 .secondary-button:hover {
-  border-color: rgba(231, 172, 96, 0.5);
+  border-color: rgba(110, 163, 255, 0.5);
   background: rgba(255, 255, 255, 0.08);
   transform: translateY(-1px);
 }
@@ -358,8 +358,8 @@ h3 {
   display: grid;
   place-items: center;
   border-radius: 11px;
-  background: var(--amber-soft);
-  color: var(--amber);
+  background: var(--accent-soft);
+  color: var(--accent);
   font-weight: 850;
 }
 
@@ -436,13 +436,13 @@ h3 {
 .community-list button:hover,
 .community-list button.is-active,
 .post-card button:hover {
-  border-color: rgba(231, 172, 96, 0.55);
+  border-color: rgba(110, 163, 255, 0.55);
   color: var(--ink);
   transform: translateY(-1px);
 }
 
 .community-list button.is-active {
-  background: var(--amber-soft);
+  background: var(--accent-soft);
 }
 
 textarea,
@@ -482,8 +482,8 @@ input {
 textarea:focus,
 select:focus,
 input:focus {
-  border-color: rgba(231, 172, 96, 0.7);
-  box-shadow: 0 0 0 4px rgba(231, 172, 96, 0.14);
+  border-color: rgba(110, 163, 255, 0.7);
+  box-shadow: 0 0 0 4px rgba(110, 163, 255, 0.14);
 }
 
 .error-text,
@@ -521,7 +521,7 @@ input:focus {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  color: var(--amber);
+  color: var(--accent);
   font-size: 0.9rem;
   font-weight: 750;
 }
@@ -533,9 +533,9 @@ input:focus {
 
 .local-note {
   margin-top: 6px;
-  border-left: 3px solid var(--amber);
+  border-left: 3px solid var(--accent);
   padding: 4px 0 4px 12px;
-  color: var(--amber);
+  color: var(--accent);
   font-size: 0.92rem;
   font-weight: 650;
 }
@@ -564,7 +564,7 @@ input:focus {
 }
 
 .mini-diagnosis em {
-  color: var(--amber);
+  color: var(--accent);
   font-style: normal;
   font-weight: 750;
 }
@@ -618,8 +618,8 @@ input:focus {
 
 .chat-message.is-bot .chat-avatar {
   border-radius: 11px;
-  background: linear-gradient(150deg, var(--amber), var(--amber-deep));
-  color: #241708;
+  background: linear-gradient(150deg, var(--accent), var(--accent-deep));
+  color: #081120;
 }
 
 .chat-message.is-bot .chat-bubble p {
@@ -640,8 +640,8 @@ input:focus {
 }
 
 .chat-message.is-user .chat-bubble p {
-  background: linear-gradient(150deg, var(--amber), var(--amber-deep));
-  color: #241708;
+  background: linear-gradient(150deg, var(--accent), var(--accent-deep));
+  color: #081120;
   border-bottom-right-radius: 5px;
 }
 
@@ -734,7 +734,7 @@ input:focus {
 .community-status {
   border: 1px solid var(--line);
   border-radius: 14px;
-  background: var(--amber-soft);
+  background: var(--accent-soft);
   color: var(--soft);
   line-height: 1.5;
   padding: 18px;
@@ -772,7 +772,7 @@ input:focus {
 }
 
 .empty-community {
-  border: 1px dashed rgba(255, 238, 214, 0.18);
+  border: 1px dashed rgba(214, 228, 255, 0.18);
   border-radius: var(--radius-lg);
   background: rgba(255, 255, 255, 0.02);
   text-align: center;
@@ -789,7 +789,7 @@ input:focus {
 }
 
 .empty-mini {
-  border: 1px dashed rgba(255, 238, 214, 0.16);
+  border: 1px dashed rgba(214, 228, 255, 0.16);
   border-radius: 14px;
   padding: 14px;
   color: var(--muted);
@@ -804,7 +804,7 @@ input:focus {
   border: 1px solid var(--line-strong);
   border-radius: var(--radius-pill);
   padding: 8px 13px;
-  color: var(--amber);
+  color: var(--accent);
   font-size: 0.82rem;
   font-weight: 750;
 }
@@ -814,8 +814,8 @@ input:focus {
   margin-bottom: 12px;
   padding: 4px 11px;
   border-radius: var(--radius-pill);
-  background: var(--amber-soft);
-  color: var(--amber);
+  background: var(--accent-soft);
+  color: var(--accent);
   font-size: 0.78rem;
   font-weight: 750;
 }
@@ -836,7 +836,7 @@ input:focus {
 }
 
 .reply-card {
-  border-left: 3px solid rgba(231, 172, 96, 0.5);
+  border-left: 3px solid rgba(110, 163, 255, 0.5);
   border-radius: 0 10px 10px 0;
   background: rgba(255, 255, 255, 0.02);
   padding: 10px 0 10px 13px;
@@ -882,15 +882,15 @@ input:focus {
 
 .reset-card:hover {
   transform: translateY(-3px);
-  border-color: rgba(231, 172, 96, 0.5);
+  border-color: rgba(110, 163, 255, 0.5);
   box-shadow: var(--shadow);
 }
 
 .reset-tag {
   padding: 4px 11px;
   border-radius: var(--radius-pill);
-  background: var(--amber-soft);
-  color: var(--amber);
+  background: var(--accent-soft);
+  color: var(--accent);
   font-size: 0.76rem;
   font-weight: 750;
 }
@@ -938,7 +938,7 @@ input:focus {
 }
 
 .reset-dot.is-on {
-  background: linear-gradient(90deg, var(--amber), var(--amber-deep));
+  background: linear-gradient(90deg, var(--accent), var(--accent-deep));
 }
 
 .reset-step,
@@ -950,7 +950,7 @@ input:focus {
 }
 
 .reset-step-label {
-  color: var(--amber);
+  color: var(--accent);
   font-size: 0.8rem;
   font-weight: 800;
   letter-spacing: 0.06em;
@@ -971,9 +971,9 @@ input:focus {
 }
 
 .reset-action {
-  border: 1px solid rgba(231, 172, 96, 0.4);
+  border: 1px solid rgba(110, 163, 255, 0.4);
   border-radius: var(--radius-lg);
-  background: var(--amber-soft);
+  background: var(--accent-soft);
   padding: 24px;
 }
 
@@ -992,8 +992,8 @@ input:focus {
 }
 
 .prompt-chip.is-selected {
-  border-color: var(--amber);
-  background: var(--amber-soft);
+  border-color: var(--accent);
+  background: var(--accent-soft);
   color: var(--ink);
 }
 
@@ -1013,7 +1013,7 @@ input:focus {
 }
 
 .talk-block-label {
-  color: var(--amber);
+  color: var(--accent);
   font-size: 0.76rem;
   font-weight: 800;
   letter-spacing: 0.08em;
@@ -1021,8 +1021,8 @@ input:focus {
 }
 
 .talk-opener {
-  border-color: rgba(231, 172, 96, 0.4);
-  background: var(--amber-soft);
+  border-color: rgba(110, 163, 255, 0.4);
+  background: var(--accent-soft);
 }
 
 .talk-opener h2 {
@@ -1082,23 +1082,23 @@ input:focus {
   width: 40px;
   height: 40px;
   border-radius: var(--radius-pill);
-  background: radial-gradient(circle at 50% 50%, var(--amber), var(--amber-deep));
-  box-shadow: 0 0 0 0 rgba(231, 172, 96, 0.5);
+  background: radial-gradient(circle at 50% 50%, var(--accent), var(--accent-deep));
+  box-shadow: 0 0 0 0 rgba(110, 163, 255, 0.5);
   animation: pulse 1.6s ease-in-out infinite;
 }
 
 @keyframes pulse {
   0% {
     transform: scale(0.85);
-    box-shadow: 0 0 0 0 rgba(231, 172, 96, 0.45);
+    box-shadow: 0 0 0 0 rgba(110, 163, 255, 0.45);
   }
   70% {
     transform: scale(1);
-    box-shadow: 0 0 0 22px rgba(231, 172, 96, 0);
+    box-shadow: 0 0 0 22px rgba(110, 163, 255, 0);
   }
   100% {
     transform: scale(0.85);
-    box-shadow: 0 0 0 0 rgba(231, 172, 96, 0);
+    box-shadow: 0 0 0 0 rgba(110, 163, 255, 0);
   }
 }
 
@@ -1157,7 +1157,7 @@ input:focus {
 }
 
 .testimonial-card figcaption {
-  color: var(--amber);
+  color: var(--accent);
   font-size: 0.85rem;
   font-weight: 750;
 }
@@ -1189,8 +1189,8 @@ input:focus {
 
 .circle-preview:hover {
   transform: translateY(-2px);
-  border-color: rgba(231, 172, 96, 0.5);
-  background: var(--amber-soft);
+  border-color: rgba(110, 163, 255, 0.5);
+  background: var(--accent-soft);
 }
 
 .circle-preview strong {
@@ -1210,10 +1210,10 @@ input:focus {
   align-items: center;
   justify-content: space-between;
   gap: 20px;
-  border: 1px solid rgba(231, 172, 96, 0.35);
+  border: 1px solid rgba(110, 163, 255, 0.35);
   border-radius: var(--radius-lg);
   background:
-    radial-gradient(600px 300px at 8% 0%, rgba(231, 172, 96, 0.16), transparent 60%),
+    radial-gradient(600px 300px at 8% 0%, rgba(110, 163, 255, 0.16), transparent 60%),
     var(--panel);
   box-shadow: var(--shadow-soft);
   padding: clamp(24px, 5vw, 44px);
@@ -1244,7 +1244,7 @@ input:focus {
 }
 
 .insight-block span {
-  color: var(--amber);
+  color: var(--accent);
   font-size: 0.72rem;
   font-weight: 800;
   letter-spacing: 0.08em;
@@ -1274,14 +1274,14 @@ input:focus {
   align-items: baseline;
   gap: 8px;
   margin-top: 18px;
-  border: 1px solid rgba(231, 172, 96, 0.4);
+  border: 1px solid rgba(110, 163, 255, 0.4);
   border-radius: var(--radius-pill);
-  background: var(--amber-soft);
+  background: var(--accent-soft);
   padding: 10px 18px;
 }
 
 .streak-chip strong {
-  color: var(--amber);
+  color: var(--accent);
   font-size: 1.6rem;
   font-weight: 850;
 }
@@ -1320,7 +1320,7 @@ input:focus {
 
 .habit-row:hover {
   transform: translateY(-1px);
-  border-color: rgba(231, 172, 96, 0.5);
+  border-color: rgba(110, 163, 255, 0.5);
 }
 
 .habit-row.is-done {
@@ -1373,7 +1373,7 @@ input:focus {
 
 .week-bar span {
   width: 100%;
-  background: linear-gradient(180deg, var(--amber), var(--amber-deep));
+  background: linear-gradient(180deg, var(--accent), var(--accent-deep));
   border-radius: 0;
   min-height: 0;
   transition: height 0.3s ease;
@@ -1385,7 +1385,7 @@ input:focus {
 }
 
 .week-day.is-today small {
-  color: var(--amber);
+  color: var(--accent);
 }
 
 .daily-note {
@@ -1476,7 +1476,7 @@ input:focus {
 }
 
 .footer-links span {
-  color: var(--amber);
+  color: var(--accent);
   font-size: 0.74rem;
   font-weight: 800;
   letter-spacing: 0.09em;
@@ -1511,7 +1511,7 @@ a:focus-visible,
 textarea:focus-visible,
 input:focus-visible,
 select:focus-visible {
-  outline: 2px solid var(--amber);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
