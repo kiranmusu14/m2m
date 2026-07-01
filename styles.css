@@ -860,6 +860,130 @@ input:focus {
   gap: 6px;
 }
 
+.reset-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.reset-card {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+  text-align: left;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--panel);
+  box-shadow: var(--shadow-soft);
+  padding: 22px;
+  cursor: pointer;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.reset-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(231, 172, 96, 0.5);
+  box-shadow: var(--shadow);
+}
+
+.reset-tag {
+  padding: 4px 11px;
+  border-radius: var(--radius-pill);
+  background: var(--amber-soft);
+  color: var(--amber);
+  font-size: 0.76rem;
+  font-weight: 750;
+}
+
+.reset-card strong {
+  font-size: 1.25rem;
+  color: var(--ink);
+}
+
+.reset-card p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.reset-meta {
+  color: var(--soft);
+  font-size: 0.8rem;
+  font-weight: 650;
+  opacity: 0.75;
+}
+
+.reset-workspace {
+  align-items: start;
+}
+
+.reset-panel {
+  min-height: 420px;
+  display: grid;
+  align-content: start;
+  gap: 24px;
+}
+
+.reset-progress {
+  display: flex;
+  gap: 8px;
+}
+
+.reset-dot {
+  flex: 1;
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.09);
+  transition: background 0.3s ease;
+}
+
+.reset-dot.is-on {
+  background: linear-gradient(90deg, var(--amber), var(--amber-deep));
+}
+
+.reset-step,
+.reset-action {
+  display: grid;
+  gap: 14px;
+  align-content: start;
+  animation: pop 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.reset-step-label {
+  color: var(--amber);
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.reset-step h2,
+.reset-action h2 {
+  margin: 0;
+  font-size: clamp(1.6rem, 3vw, 2.3rem);
+}
+
+.reset-step p {
+  margin: 0;
+  color: var(--soft);
+  font-size: 1.1rem;
+  line-height: 1.6;
+}
+
+.reset-action {
+  border: 1px solid rgba(231, 172, 96, 0.4);
+  border-radius: var(--radius-lg);
+  background: var(--amber-soft);
+  padding: 24px;
+}
+
+.reset-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 6px;
+}
+
 .loading-section {
   min-height: 540px;
   display: grid;

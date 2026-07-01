@@ -1,6 +1,7 @@
 const pages = [
   ["home", "Home"],
   ["checkin", "Check-In"],
+  ["reset", "Reset"],
   ["community", "Community"],
   ["guide", "AI Guide"],
 ];
@@ -20,6 +21,8 @@ const state = {
   activeCommunityName: "",
   communityReplies: {},
   communityPosts: [],
+  activeReset: null,
+  resetStep: 0,
 };
 
 const checkInChips = [
@@ -36,11 +39,111 @@ const checkInChips = [
   "Fine, but not really",
 ];
 
-const resetTools = [
-  ["Anger", "Delay the reaction. Name the line that got crossed."],
-  ["Panic", "Slow the body first. Then face one next thing."],
-  ["Overthinking", "Write the loop once. Stop feeding it for ten minutes."],
-  ["Shame", "Separate fact from punishment. Pick one repair."],
+const resetGuides = [
+  {
+    id: "anger",
+    title: "Cool Down",
+    tag: "Anger",
+    blurb: "Ten minutes to stop reacting and choose the move you'll respect tomorrow.",
+    steps: [
+      ["Delay the reaction", "2 min", "Step back. Don't send the text, say the sentence, or make the call yet. Just pause."],
+      ["Drop the charge", "3 min", "Breathe out longer than you breathe in. Ten slow breaths. Let your shoulders down."],
+      ["Name the line", "3 min", "What line got crossed? Say it in one plain sentence, no insults."],
+      ["Pick the clean move", "2 min", "Decide the one response you'd still respect yourself for tomorrow."],
+    ],
+    action: "Wait 20 minutes before you respond. Then say the one plain sentence, not the insult.",
+  },
+  {
+    id: "anxiety",
+    title: "Ground Yourself",
+    tag: "Anxiety",
+    blurb: "Slow the body and shrink the future down to the next ten minutes.",
+    steps: [
+      ["Land in the room", "2 min", "Name 5 things you see, 4 you can touch, 3 you can hear. Come back to now."],
+      ["Slow the engine", "3 min", "Breathe in for 4, out for 6. Repeat until your chest loosens."],
+      ["Name the prediction", "3 min", "Write the exact thing your mind says will go wrong."],
+      ["Shrink it", "2 min", "Ask: what's the next 10 minutes, not the whole future?"],
+    ],
+    action: "Do one small controllable thing in the next 10 minutes. Just one.",
+  },
+  {
+    id: "overthinking",
+    title: "Break the Loop",
+    tag: "Overthinking",
+    blurb: "Stop feeding the replay and get out of your head with your body.",
+    steps: [
+      ["Catch the loop", "2 min", "Write the thought that keeps repeating. Once. On paper or notes."],
+      ["Answer or park it", "3 min", "Is there an answer right now? If yes, decide. If no, park it."],
+      ["Set the window", "3 min", "Give the thought a 10-minute slot later today, not now."],
+      ["Move the body", "2 min", "Stand up, walk, change rooms. Interrupt the replay physically."],
+    ],
+    action: "Do one physical thing for 10 minutes. Movement ends the loop faster than thinking.",
+  },
+  {
+    id: "shame",
+    title: "Separate Fact From Attack",
+    tag: "Shame",
+    blurb: "Tell the difference between what happened and how you're punishing yourself.",
+    steps: [
+      ["Write what happened", "3 min", "Just the facts. No judgment words yet."],
+      ["Spot the attack", "2 min", "Underline where you called yourself names instead of stating facts."],
+      ["Say it straight", "3 min", "What would you tell a brother in the exact same spot?"],
+      ["Find one repair", "2 min", "Is there one honest action or apology worth making?"],
+    ],
+    action: "Make the one repair, or write the one apology. Small and honest beats perfect.",
+  },
+  {
+    id: "breakup",
+    title: "Get Through the Hour",
+    tag: "Breakups",
+    blurb: "Ride out the wave without doing something you'll regret.",
+    steps: [
+      ["Stop the check", "2 min", "Put the phone down. Don't open their profile or your old messages."],
+      ["Let it hurt", "3 min", "Name what you miss, out loud or on paper. Missing someone is normal."],
+      ["Protect your dignity", "3 min", "Write the message you want to send. Do not send it."],
+      ["One kind thing", "2 min", "Water, food, a walk, or a call to someone safe."],
+    ],
+    action: "Text one person who has your back. You don't have to carry this alone.",
+  },
+  {
+    id: "loneliness",
+    title: "Reach Out",
+    tag: "Loneliness",
+    blurb: "Turn a heavy feeling into one small, real connection.",
+    steps: [
+      ["Name it without shame", "2 min", "Lonely is a signal, not a weakness. You're wired to need people."],
+      ["Pick one person", "3 min", "Who's safest to send one honest sentence to?"],
+      ["Lower the bar", "3 min", "You don't need a deep talk. 'Thinking of you, how are you?' counts."],
+      ["Send it", "2 min", "Send one message. That's the whole task."],
+    ],
+    action: "Send one honest message to one person now. Connection beats performing.",
+  },
+  {
+    id: "conflict",
+    title: "Reset Before You Talk",
+    tag: "Conflict",
+    blurb: "Cool the heat and go in with one point instead of a fight.",
+    steps: [
+      ["Cool the heat", "2 min", "Breathe out slow. You can't fix this while you're flooded."],
+      ["Find your one point", "3 min", "What's the single thing you actually need heard?"],
+      ["Drop the ammo", "3 min", "Cut the insults and the 'you always'. Keep the point."],
+      ["Open soft", "2 min", "Plan a first sentence that invites, not attacks."],
+    ],
+    action: "Open with: 'I want to sort this out, not win it.' Then say your one point.",
+  },
+  {
+    id: "sleep",
+    title: "Wind Down",
+    tag: "Sleep",
+    blurb: "Unload your head and let rest be the goal, not forced sleep.",
+    steps: [
+      ["Cut the input", "2 min", "Screen down, lights low. Let the room get dull and quiet."],
+      ["Unload the head", "3 min", "Write tomorrow's worries on paper so your mind can drop them."],
+      ["Slow the breath", "3 min", "In for 4, hold 4, out for 6. Let each out-breath sink you down."],
+      ["Let go of trying", "2 min", "Rest is enough. You don't have to force sleep to happen."],
+    ],
+    action: "Lie down, breathe out long, and let rest be the goal. Not sleep. Rest.",
+  },
 ];
 
 const patterns = {
@@ -218,6 +321,10 @@ function getInitialPage() {
 }
 
 function setPage(page) {
+  if (page === "reset") {
+    state.activeReset = null;
+    state.resetStep = 0;
+  }
   state.page = page;
   window.location.hash = page;
   render();
@@ -259,6 +366,7 @@ function renderHeader() {
 
 function renderPage() {
   if (state.page === "checkin") return renderCheckIn();
+  if (state.page === "reset") return renderReset();
   if (state.page === "community") return renderCommunity();
   if (state.page === "guide") return renderGuide();
   return renderHome();
@@ -303,8 +411,8 @@ function renderHome() {
     <section class="section-band two-column">
       <div>
         <p class="eyebrow">MVP</p>
-        <h2>Four pages. One tight loop.</h2>
-        <p class="body-copy">Home, Check-In, Community, and AI Guide are enough to test the real behavior with 100 men before building the full platform.</p>
+        <h2>One tight loop.</h2>
+        <p class="body-copy">Check in with rough words, get a plain read, run a 10-minute reset, talk it through, and find men who get it. Enough to test the real behavior before building the full platform.</p>
       </div>
       <div class="roadmap-list">
         ${["Check in with rough words", "Get a plain emotion label", "Talk to the guide", "Post or join a circle"]
@@ -367,6 +475,83 @@ function renderDiagnosis() {
         <button class="secondary-button" id="reset-checkin" type="button">Start over</button>
       </div>
     </div>
+  `;
+}
+
+function renderReset() {
+  const guide = resetGuides.find((item) => item.id === state.activeReset);
+  if (guide) return renderResetGuide(guide);
+
+  return `
+    <section class="section-band">
+      <div class="section-heading">
+        <p class="eyebrow">Reset Center</p>
+        <h1>Ten minutes to steady yourself.</h1>
+        <p class="body-copy">No lectures. Pick what you're carrying and follow a few short steps. Each one ends with a single thing to actually do.</p>
+      </div>
+      <div class="reset-grid">
+        ${resetGuides
+          .map(
+            (item) => `
+              <button class="reset-card" type="button" data-reset="${escapeHTML(item.id)}">
+                <span class="reset-tag">${escapeHTML(item.tag)}</span>
+                <strong>${escapeHTML(item.title)}</strong>
+                <p>${escapeHTML(item.blurb)}</p>
+                <span class="reset-meta">${item.steps.length} steps &middot; ~10 min</span>
+              </button>
+            `
+          )
+          .join("")}
+      </div>
+    </section>
+  `;
+}
+
+function renderResetGuide(guide) {
+  const total = guide.steps.length;
+  const onAction = state.resetStep >= total;
+  const stepIndex = Math.min(state.resetStep, total - 1);
+
+  const dots = guide.steps
+    .map((_, index) => `<span class="reset-dot ${onAction || index <= stepIndex ? "is-on" : ""}"></span>`)
+    .join("");
+
+  const body = onAction
+    ? `
+      <div class="reset-action">
+        <span class="reset-step-label">One action step</span>
+        <h2>${escapeHTML(guide.action)}</h2>
+        <div class="reset-nav">
+          <button class="secondary-button" data-reset-restart type="button">Run it again</button>
+          <button class="primary-button" data-page="guide" type="button">Talk it through</button>
+        </div>
+      </div>
+    `
+    : `
+      <div class="reset-step">
+        <span class="reset-step-label">Step ${stepIndex + 1} of ${total} &middot; ${escapeHTML(guide.steps[stepIndex][1])}</span>
+        <h2>${escapeHTML(guide.steps[stepIndex][0])}</h2>
+        <p>${escapeHTML(guide.steps[stepIndex][2])}</p>
+        <div class="reset-nav">
+          ${stepIndex > 0 ? `<button class="secondary-button" data-reset-prev type="button">Back</button>` : ""}
+          <button class="primary-button" data-reset-next type="button">${stepIndex === total - 1 ? "See the action step" : "Next"}</button>
+        </div>
+      </div>
+    `;
+
+  return `
+    <section class="workspace reset-workspace">
+      <div class="workspace-copy">
+        <p class="eyebrow">${escapeHTML(guide.tag)} reset</p>
+        <h1>${escapeHTML(guide.title)}</h1>
+        <p>${escapeHTML(guide.blurb)}</p>
+        <button class="secondary-button" data-reset-exit type="button">All resets</button>
+      </div>
+      <div class="tool-panel reset-panel">
+        <div class="reset-progress" aria-hidden="true">${dots}</div>
+        ${body}
+      </div>
+    </section>
   `;
 }
 
@@ -609,6 +794,35 @@ function bindPageEvents() {
       textarea.value = textarea.value.trim() ? `${textarea.value.trim()}\n${button.dataset.chip}` : button.dataset.chip;
       textarea.focus();
     });
+  });
+
+  document.querySelectorAll("[data-reset]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.activeReset = button.dataset.reset;
+      state.resetStep = 0;
+      render();
+    });
+  });
+
+  document.querySelector("[data-reset-next]")?.addEventListener("click", () => {
+    state.resetStep += 1;
+    render();
+  });
+
+  document.querySelector("[data-reset-prev]")?.addEventListener("click", () => {
+    state.resetStep = Math.max(0, state.resetStep - 1);
+    render();
+  });
+
+  document.querySelector("[data-reset-restart]")?.addEventListener("click", () => {
+    state.resetStep = 0;
+    render();
+  });
+
+  document.querySelector("[data-reset-exit]")?.addEventListener("click", () => {
+    state.activeReset = null;
+    state.resetStep = 0;
+    render();
   });
 
   document.querySelectorAll("[data-community-id]").forEach((button) => {
