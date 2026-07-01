@@ -373,6 +373,12 @@ async function handleCreateCommunity(req, res) {
     return;
   }
 
+  const communityFlag = moderateContent(`${name} ${description}`);
+  if (communityFlag.flagged) {
+    sendJson(res, 422, { error: "content_flagged", category: communityFlag.category, message: COMMUNITY_WARNING });
+    return;
+  }
+
   const [community] = await supabaseRequest("/rest/v1/community_circles", {
     method: "POST",
     headers: { Prefer: "return=representation" },
@@ -428,6 +434,12 @@ async function handleCreateCommunityPost(req, res) {
     return;
   }
 
+  const postFlag = moderateContent(text);
+  if (postFlag.flagged) {
+    sendJson(res, 422, { error: "content_flagged", category: postFlag.category, message: COMMUNITY_WARNING });
+    return;
+  }
+
   const [post] = await supabaseRequest("/rest/v1/community_posts", {
     method: "POST",
     headers: { Prefer: "return=representation" },
@@ -473,6 +485,12 @@ async function handleCreatePostReply(postId, req, res) {
 
   if (!cleanPostId || text.length < 2) {
     sendJson(res, 400, { error: "reply_required" });
+    return;
+  }
+
+  const replyFlag = moderateContent(text);
+  if (replyFlag.flagged) {
+    sendJson(res, 422, { error: "content_flagged", category: replyFlag.category, message: COMMUNITY_WARNING });
     return;
   }
 
@@ -564,6 +582,62 @@ async function supabaseRequest(endpoint, options = {}) {
 
 function isSupabaseConfigured() {
   return Boolean(supabaseUrl && supabasePublishableKey);
+}
+
+const COMMUNITY_WARNING =
+  "This breaks a house rule: no hate, no misogyny, no bullying. You can be honest, angry, and real without attacking anyone. Rephrase it and it will post.";
+
+const bannedTerms = [
+  "nigger",
+  "niggers",
+  "faggot",
+  "faggots",
+  "retard",
+  "retarded",
+  "tranny",
+  "spic",
+  "chink",
+  "kike",
+  "coon",
+  "wetback",
+  "cunt",
+  "whore",
+  "slut",
+  "slag",
+  "kill yourself",
+  "kys",
+  "you should die",
+  "you deserve to die",
+  "go kill yourself",
+  "go die",
+  "hang yourself",
+  "neck yourself",
+];
+
+function moderateContent(text) {
+  const normalized = String(text || "")
+    .toLowerCase()
+    .replace(/[^a-z\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (!normalized) {
+    return { flagged: false };
+  }
+
+  const padded = ` ${normalized} `;
+
+  for (const term of bannedTerms) {
+    if (term.includes(" ")) {
+      if (normalized.includes(term)) {
+        return { flagged: true, category: "community_rule", term };
+      }
+    } else if (padded.includes(` ${term} `)) {
+      return { flagged: true, category: "community_rule", term };
+    }
+  }
+
+  return { flagged: false };
 }
 
 function formatPost(post) {

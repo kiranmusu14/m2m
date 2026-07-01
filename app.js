@@ -14,6 +14,7 @@ const state = {
   communityLoaded: false,
   communityLoading: false,
   communityError: "",
+  communityWarning: "",
   communities: [],
   activeCommunityId: "",
   activeCommunityName: "",
@@ -151,6 +152,58 @@ const emotionLabelMap = {
   depressed: "Low mood",
   failure: "Shame",
 };
+
+const COMMUNITY_WARNING =
+  "This breaks a house rule: no hate, no misogyny, no bullying. You can be honest, angry, and real without attacking anyone. Rephrase it and it will post.";
+
+const bannedTerms = [
+  "nigger",
+  "niggers",
+  "faggot",
+  "faggots",
+  "retard",
+  "retarded",
+  "tranny",
+  "spic",
+  "chink",
+  "kike",
+  "coon",
+  "wetback",
+  "cunt",
+  "whore",
+  "slut",
+  "slag",
+  "kill yourself",
+  "kys",
+  "you should die",
+  "you deserve to die",
+  "go kill yourself",
+  "go die",
+  "hang yourself",
+  "neck yourself",
+];
+
+function moderateText(text) {
+  const normalized = String(text || "")
+    .toLowerCase()
+    .replace(/[^a-z\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (!normalized) return { flagged: false };
+
+  const padded = ` ${normalized} `;
+
+  for (const term of bannedTerms) {
+    if (term.includes(" ")) {
+      if (normalized.includes(term)) return { flagged: true };
+    } else if (padded.includes(` ${term} `)) {
+      return { flagged: true };
+    }
+  }
+
+  return { flagged: false };
+}
 
 const site = document.querySelector("#site");
 
@@ -355,12 +408,20 @@ function renderChat() {
           .map(
             (message) => `
               <div class="chat-message is-${message.role}">
-                <p>${escapeHTML(message.text)}</p>
+                <span class="chat-avatar" aria-hidden="true">${message.role === "bot" ? "M2M" : "You"}</span>
+                <div class="chat-bubble"><p>${escapeHTML(message.text)}</p></div>
               </div>
             `
           )
           .join("")}
-        ${state.isThinking ? `<div class="chat-message is-bot is-thinking"><p>Reading that...</p></div>` : ""}
+        ${
+          state.isThinking
+            ? `<div class="chat-message is-bot is-thinking">
+                <span class="chat-avatar" aria-hidden="true">M2M</span>
+                <div class="chat-bubble"><p>Reading that...</p></div>
+              </div>`
+            : ""
+        }
       </div>
       <form class="chat-form" id="chat-form">
         <textarea id="chat-input" rows="2" placeholder="Reply in your own words..."></textarea>
@@ -381,6 +442,7 @@ function renderCommunity() {
       <div class="community-layout">
         <div class="community-main">
           ${state.activeCommunityId ? renderPostForm() : renderNoCommunitySelected()}
+          ${renderCommunityWarning()}
           <div class="post-list">
             ${renderCommunityStatus()}
             ${renderCommunityPosts()}
@@ -416,11 +478,22 @@ function renderPostForm() {
     <form class="post-form" id="post-form">
       <label for="post-text">Post in ${escapeHTML(state.activeCommunityName)}</label>
       <textarea id="post-text" placeholder="Say the real thing. Keep it respectful."></textarea>
+      <p class="safety-note">Anonymous. Honest talk welcome. Hate, misogyny, and bullying get flagged.</p>
       <div class="post-actions">
         <span class="active-circle">${escapeHTML(state.activeCommunityName)}</span>
         <button class="primary-button" type="submit">Post</button>
       </div>
     </form>
+  `;
+}
+
+function renderCommunityWarning() {
+  if (!state.communityWarning) return "";
+  return `
+    <div class="community-warning" role="alert">
+      <strong>Hold up</strong>
+      <p>${escapeHTML(state.communityWarning)}</p>
+    </div>
   `;
 }
 
@@ -664,6 +737,12 @@ async function loadCommunities() {
 }
 
 async function createCommunity(community) {
+  if (moderateText(`${community.name} ${community.description || ""}`).flagged) {
+    showCommunityWarning(COMMUNITY_WARNING);
+    return;
+  }
+
+  state.communityWarning = "";
   const draft = {
     id: `local-community-${Date.now()}`,
     name: community.name,
@@ -683,6 +762,13 @@ async function createCommunity(community) {
     state.activeCommunityName = saved.name;
     state.communityError = "";
   } catch (error) {
+    if (error.flagged) {
+      state.communities = state.communities.filter((item) => item !== draft);
+      state.activeCommunityId = "";
+      state.activeCommunityName = "";
+      showCommunityWarning(error.message || COMMUNITY_WARNING);
+      return;
+    }
     state.communityError =
       error.message || "Created locally for now. Supabase is not ready.";
   }
@@ -691,6 +777,12 @@ async function createCommunity(community) {
 }
 
 async function createCommunityPost(post) {
+  if (moderateText(post.text).flagged) {
+    showCommunityWarning(COMMUNITY_WARNING);
+    return;
+  }
+
+  state.communityWarning = "";
   const draft = {
     id: `local-post-${Date.now()}`,
     communityId: state.activeCommunityId,
@@ -710,6 +802,11 @@ async function createCommunityPost(post) {
     state.communityPosts = state.communityPosts.map((item) => (item === draft ? savedPost : item));
     state.communityError = "";
   } catch (error) {
+    if (error.flagged) {
+      state.communityPosts = state.communityPosts.filter((item) => item !== draft);
+      showCommunityWarning(error.message || COMMUNITY_WARNING);
+      return;
+    }
     state.communityError =
       error.message || "Saved locally for now. Supabase is not ready.";
   }
@@ -738,6 +835,12 @@ async function loadReplies(postId) {
 }
 
 async function createReply(postId, text) {
+  if (moderateText(text).flagged) {
+    showCommunityWarning(COMMUNITY_WARNING);
+    return;
+  }
+
+  state.communityWarning = "";
   const draft = { id: `local-reply-${Date.now()}`, postId, text };
   state.communityReplies[postId] = [...(state.communityReplies[postId] || []), draft];
   state.communityPosts = incrementReplyCount(postId);
@@ -752,15 +855,33 @@ async function createReply(postId, text) {
     );
     state.communityError = "";
   } catch (error) {
+    if (error.flagged) {
+      state.communityReplies[postId] = (state.communityReplies[postId] || []).filter((item) => item !== draft);
+      state.communityPosts = decrementReplyCount(postId);
+      showCommunityWarning(error.message || COMMUNITY_WARNING);
+      return;
+    }
     state.communityError = error.message || "Saved locally for now. Supabase is not ready.";
   }
 
   render();
 }
 
+function showCommunityWarning(message) {
+  state.communityWarning = message;
+  state.communityError = "";
+  render();
+}
+
 function incrementReplyCount(postId) {
   return state.communityPosts.map((post) =>
     post.id === postId ? { ...post, replies: Number(post.replies || 0) + 1 } : post
+  );
+}
+
+function decrementReplyCount(postId) {
+  return state.communityPosts.map((post) =>
+    post.id === postId ? { ...post, replies: Math.max(0, Number(post.replies || 0) - 1) } : post
   );
 }
 
@@ -879,6 +1000,7 @@ async function postJSON(path, payload, method = "POST") {
   if (!response.ok) {
     const error = new Error(result?.apiError?.message || result?.message || "Request failed.");
     error.apiError = result?.apiError || null;
+    error.flagged = result?.error === "content_flagged";
     throw error;
   }
 

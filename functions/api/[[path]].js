@@ -322,6 +322,11 @@ async function handleCreateCommunity(request, config) {
     return json(400, { error: "community_required" });
   }
 
+  const flag = moderateContent(`${name} ${description}`);
+  if (flag.flagged) {
+    return json(422, { error: "content_flagged", category: flag.category, message: COMMUNITY_WARNING });
+  }
+
   const [community] = await supabaseRequest(config, "/rest/v1/community_circles", {
     method: "POST",
     headers: { Prefer: "return=representation" },
@@ -363,6 +368,11 @@ async function handleCreateCommunityPost(request, config) {
     return json(400, { error: "post_required" });
   }
 
+  const flag = moderateContent(text);
+  if (flag.flagged) {
+    return json(422, { error: "content_flagged", category: flag.category, message: COMMUNITY_WARNING });
+  }
+
   const [post] = await supabaseRequest(config, "/rest/v1/community_posts", {
     method: "POST",
     headers: { Prefer: "return=representation" },
@@ -395,6 +405,11 @@ async function handleCreatePostReply(postId, request, config) {
 
   if (!cleanPostId || text.length < 2) {
     return json(400, { error: "reply_required" });
+  }
+
+  const flag = moderateContent(text);
+  if (flag.flagged) {
+    return json(422, { error: "content_flagged", category: flag.category, message: COMMUNITY_WARNING });
   }
 
   const [reply] = await supabaseRequest(config, "/rest/v1/community_replies", {
@@ -481,6 +496,62 @@ async function supabaseRequest(config, endpoint, options = {}) {
   }
 
   return data || [];
+}
+
+const COMMUNITY_WARNING =
+  "This breaks a house rule: no hate, no misogyny, no bullying. You can be honest, angry, and real without attacking anyone. Rephrase it and it will post.";
+
+const bannedTerms = [
+  "nigger",
+  "niggers",
+  "faggot",
+  "faggots",
+  "retard",
+  "retarded",
+  "tranny",
+  "spic",
+  "chink",
+  "kike",
+  "coon",
+  "wetback",
+  "cunt",
+  "whore",
+  "slut",
+  "slag",
+  "kill yourself",
+  "kys",
+  "you should die",
+  "you deserve to die",
+  "go kill yourself",
+  "go die",
+  "hang yourself",
+  "neck yourself",
+];
+
+function moderateContent(text) {
+  const normalized = String(text || "")
+    .toLowerCase()
+    .replace(/[^a-z\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (!normalized) {
+    return { flagged: false };
+  }
+
+  const padded = ` ${normalized} `;
+
+  for (const term of bannedTerms) {
+    if (term.includes(" ")) {
+      if (normalized.includes(term)) {
+        return { flagged: true, category: "community_rule", term };
+      }
+    } else if (padded.includes(` ${term} `)) {
+      return { flagged: true, category: "community_rule", term };
+    }
+  }
+
+  return { flagged: false };
 }
 
 function requireSupabase(config) {
