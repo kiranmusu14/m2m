@@ -23,6 +23,8 @@ const state = {
   activeCommunityName: "",
   communityReplies: {},
   communityPosts: [],
+  communityFilter: "",
+  respectedPosts: {},
   activeReset: null,
   resetStep: 0,
   talkWho: "",
@@ -1061,64 +1063,106 @@ function renderChat() {
 }
 
 function renderCommunity() {
+  const hasCircle = Boolean(state.activeCommunityId);
   return `
-    <section class="workspace community-workspace">
-      <div class="workspace-copy">
+    <section class="community-page">
+      <div class="community-head">
         <p class="eyebrow">Brotherhood Community</p>
         <h1>Anonymous, honest, accountable.</h1>
-        <p>Men can post what is real, get support, and join circles without turning pain into blame.</p>
+        <p class="community-lede">Post what's real, get support, and join circles without turning pain into blame. No names, no accounts.</p>
+        ${renderCommunitySteps(hasCircle)}
       </div>
-      <div class="community-layout">
-        <div class="community-main">
-          ${state.activeCommunityId ? renderPostForm() : renderNoCommunitySelected()}
-          ${renderCommunityWarning()}
-          <div class="post-list">
-            ${renderCommunityStatus()}
-            ${renderCommunityPosts()}
+
+      <div class="community-grid">
+        <aside class="community-rail" aria-label="Circles">
+          <div class="rail-block">
+            <div class="rail-head">
+              <h2>Your circles</h2>
+              ${state.communities.length ? `<span class="rail-count">${state.communities.length}</span>` : ""}
+            </div>
+            ${
+              state.communities.length > 6
+                ? `<label class="visually-hidden" for="community-filter">Filter circles</label>
+                   <input id="community-filter" class="rail-filter" type="search" placeholder="Filter circles" value="${escapeHTML(state.communityFilter)}" />`
+                : ""
+            }
+            ${renderCommunityList()}
           </div>
-        </div>
-        <aside class="community-side">
-          <h2>Create a community</h2>
-          <form class="community-form" id="community-form">
-            <label class="visually-hidden" for="community-name">Community name</label>
-            <input id="community-name" placeholder="Breakups, Anger, Fatherhood..." maxlength="80" />
-            <label class="visually-hidden" for="community-description">Community purpose</label>
-            <textarea id="community-description" placeholder="What kind of conversations belong here?" maxlength="220"></textarea>
-            <button class="primary-button" type="submit">Create community</button>
-          </form>
-          <h2>Communities</h2>
-          ${renderCommunityList()}
-          <h2>Start a circle</h2>
-          <div class="starter-grid">
-            ${starterCircles
-              .map(
-                ([name]) => `<button class="prompt-chip" type="button" data-starter-circle="${escapeHTML(name)}">${name}</button>`
-              )
-              .join("")}
+
+          <details class="rail-disclosure"${state.communities.length ? "" : " open"}>
+            <summary>Create a new circle</summary>
+            <form class="community-form" id="community-form">
+              <label class="visually-hidden" for="community-name">Circle name</label>
+              <input id="community-name" placeholder="Breakups, Anger, Fatherhood..." maxlength="80" />
+              <label class="visually-hidden" for="community-description">What belongs here</label>
+              <textarea id="community-description" placeholder="What kind of conversations belong here?" maxlength="220"></textarea>
+              <button class="primary-button" type="submit">Create circle</button>
+            </form>
+            <p class="rail-subhead">Or start with a common one</p>
+            <div class="starter-grid">
+              ${starterCircles
+                .map(
+                  ([name]) => `<button class="prompt-chip" type="button" data-starter-circle="${escapeHTML(name)}">${name}</button>`
+                )
+                .join("")}
+            </div>
+          </details>
+
+          <div class="rail-block rules-block">
+            <h2>House rules</h2>
+            <ul class="rule-list">
+              <li>Respect</li>
+              <li>Accountability</li>
+              <li>No hate or misogyny</li>
+              <li>No bullying</li>
+              <li>No victim culture</li>
+            </ul>
           </div>
-          <h2>Rules</h2>
-          <ul class="rule-list">
-            <li>Respect</li>
-            <li>Accountability</li>
-            <li>No hate or misogyny</li>
-            <li>No bullying</li>
-            <li>No victim culture</li>
-          </ul>
         </aside>
+
+        <div class="community-main">
+          ${renderCommunityWarning()}
+          ${hasCircle ? renderPostForm() : renderNoCommunitySelected()}
+          ${renderCommunityFeed()}
+        </div>
       </div>
     </section>
+  `;
+}
+
+function renderCommunitySteps(hasCircle) {
+  const hasPosts = hasCircle && state.communityPosts.length > 0;
+  const steps = [
+    ["Pick a circle", Boolean(state.communities.length)],
+    ["Say one honest thing", hasCircle],
+    ["Back each other up", hasPosts],
+  ];
+  return `
+    <ol class="community-steps" aria-label="How the community works">
+      ${steps
+        .map(
+          ([label, done], index) => `
+            <li class="${done ? "is-done" : ""}">
+              <span class="step-index" aria-hidden="true">${done ? "\u2713" : index + 1}</span>
+              <span class="step-label">${label}</span>
+            </li>
+          `
+        )
+        .join("")}
+    </ol>
   `;
 }
 
 function renderPostForm() {
   return `
     <form class="post-form" id="post-form">
-      <label for="post-text">Post in ${escapeHTML(state.activeCommunityName)}</label>
+      <div class="post-form-head">
+        <label for="post-text">Post in <span class="active-circle">${escapeHTML(state.activeCommunityName)}</span></label>
+      </div>
       <textarea id="post-text" placeholder="Say the real thing. Keep it respectful."></textarea>
-      <p class="safety-note">Anonymous. Honest talk welcome. Hate, misogyny, and bullying get flagged.</p>
       <div class="post-actions">
-        <span class="active-circle">${escapeHTML(state.activeCommunityName)}</span>
-        <button class="primary-button" type="submit">Post</button>
+        <p class="safety-note">Anonymous. Hate, misogyny, and bullying get flagged.</p>
+        <button class="primary-button" type="submit">Post to ${escapeHTML(state.activeCommunityName)}</button>
       </div>
     </form>
   `;
@@ -1136,26 +1180,49 @@ function renderCommunityWarning() {
 
 function renderNoCommunitySelected() {
   return `
-    <div class="empty-community">
-      <h3>Create or choose a community first.</h3>
-      <p>Conversations live inside communities created by the men using the site.</p>
+    <div class="empty-community is-primary">
+      <h3>Pick a circle to get started.</h3>
+      <p>Conversations live inside circles created by the men using the site. Choose one on the left, or create your own.</p>
     </div>
   `;
 }
 
 function renderCommunityList() {
-  if (!state.communities.length && !state.communityLoading) {
-    return `<div class="empty-mini">No communities yet. Create the first one.</div>`;
+  if (state.communityLoading && !state.communities.length) {
+    return `
+      <div class="community-list is-skeleton" aria-hidden="true">
+        ${["", "", ""].map(() => `<div class="circle-skeleton"></div>`).join("")}
+      </div>
+    `;
+  }
+
+  if (!state.communities.length) {
+    return `<div class="empty-mini">No circles yet. Create the first one below.</div>`;
+  }
+
+  const filter = state.communityFilter.trim().toLowerCase();
+  const visible = filter
+    ? state.communities.filter(
+        (community) =>
+          community.name.toLowerCase().includes(filter) ||
+          (community.description || "").toLowerCase().includes(filter)
+      )
+    : state.communities;
+
+  if (!visible.length) {
+    return `<div class="empty-mini">No circles match "${escapeHTML(state.communityFilter.trim())}".</div>`;
   }
 
   return `
-    <div class="community-list">
-      ${state.communities
+    <div class="community-list" role="list">
+      ${visible
         .map(
           (community) => `
             <button
               class="${state.activeCommunityId === community.id ? "is-active" : ""}"
               type="button"
+              role="listitem"
+              aria-pressed="${state.activeCommunityId === community.id ? "true" : "false"}"
               data-community-id="${escapeHTML(community.id)}"
             >
               <strong>${escapeHTML(community.name)}</strong>
@@ -1168,52 +1235,82 @@ function renderCommunityList() {
   `;
 }
 
-function renderCommunityStatus() {
-  if (state.communityLoading) {
-    return `<div class="community-status">Loading community posts...</div>`;
-  }
+function renderCommunityFeed() {
+  if (!state.activeCommunityId) return "";
 
-  if (state.communityError) {
-    return `<div class="community-status">${escapeHTML(state.communityError)}</div>`;
-  }
+  const count = state.communityPosts.length;
+  const heading =
+    state.communityLoading && !count
+      ? "Loading conversations..."
+      : count
+        ? `${count} ${count === 1 ? "conversation" : "conversations"} in ${escapeHTML(state.activeCommunityName)}`
+        : `${escapeHTML(state.activeCommunityName)}`;
 
-  return "";
+  return `
+    <div class="feed-head">
+      <h2>${heading}</h2>
+    </div>
+    <div class="post-list">
+      ${renderCommunityError()}
+      ${renderCommunityPosts()}
+    </div>
+  `;
+}
+
+function renderCommunityError() {
+  if (!state.communityError) return "";
+  return `<div class="community-status" role="status">${escapeHTML(state.communityError)}</div>`;
 }
 
 function renderCommunityPosts() {
-  if (!state.activeCommunityId && !state.communityLoading) {
+  if (state.communityLoading && !state.communityPosts.length) {
     return `
-      <div class="empty-community">
-        <h3>No community selected.</h3>
-        <p>Create a community, then start the first conversation inside it.</p>
+      <div class="post-list is-skeleton" aria-hidden="true">
+        ${["", ""].map(() => `<div class="post-skeleton"></div>`).join("")}
       </div>
     `;
   }
 
-  if (!state.communityPosts.length && !state.communityLoading) {
+  if (!state.communityPosts.length) {
     return `
       <div class="empty-community">
         <h3>Start the first conversation in ${escapeHTML(state.activeCommunityName)}.</h3>
-        <p>No fake posts. No staged community. Say one honest thing.</p>
+        <p>No fake posts. No staged community. Say one honest thing and someone will meet you there.</p>
       </div>
     `;
   }
 
   return state.communityPosts
     .map(
-      (post) => `
+      (post) => {
+        const id = post.id || "";
+        const open = Boolean(state.communityReplies[id]);
+        const replyCount = Number(post.replies || 0);
+        const respected = Boolean(state.respectedPosts[id]);
+        return `
         <article class="post-card">
-          <span>${escapeHTML(post.circle)}</span>
-          <p>${escapeHTML(post.text)}</p>
+          <div class="post-meta">
+            <span class="post-circle">${escapeHTML(post.circle)}</span>
+            <time class="post-time">${formatRelativeTime(post.createdAt)}</time>
+          </div>
+          <p class="post-body">${escapeHTML(post.text)}</p>
           <div class="post-controls">
-            <button type="button">Respect</button>
-            <button type="button" data-load-replies="${escapeHTML(post.id || "")}">
-              ${state.communityReplies[post.id] ? "Refresh conversation" : `Open conversation${post.replies ? ` (${post.replies})` : ""}`}
+            <button
+              type="button"
+              class="respect-button ${respected ? "is-on" : ""}"
+              data-respect="${escapeHTML(id)}"
+              aria-pressed="${respected ? "true" : "false"}"
+            >
+              <span aria-hidden="true">\u270a</span> Respect${post.respect ? ` \u00b7 ${Number(post.respect)}` : respected ? " \u00b7 1" : ""}
+            </button>
+            <button type="button" class="thread-toggle" data-load-replies="${escapeHTML(id)}" aria-expanded="${open ? "true" : "false"}">
+              ${open ? "Hide conversation" : replyCount ? `Open conversation \u00b7 ${replyCount}` : "Reply"}
             </button>
           </div>
-          ${renderReplies(post)}
+          ${open ? renderReplies(post) : ""}
         </article>
-      `
+      `;
+      }
     )
     .join("");
 }
@@ -1223,15 +1320,44 @@ function renderReplies(post) {
 
   return `
     <div class="reply-thread">
-      ${replies
-        .map((reply) => `<div class="reply-card"><p>${escapeHTML(reply.text)}</p></div>`)
-        .join("")}
+      ${
+        replies.length
+          ? replies
+              .map(
+                (reply) => `
+                  <div class="reply-card">
+                    <p>${escapeHTML(reply.text)}</p>
+                    ${reply.createdAt ? `<time class="reply-time">${formatRelativeTime(reply.createdAt)}</time>` : ""}
+                  </div>
+                `
+              )
+              .join("")
+          : `<p class="reply-empty">No replies yet. Be the first to back him up.</p>`
+      }
       <form class="reply-form" data-reply-form="${escapeHTML(post.id || "")}">
-        <input placeholder="Reply with support, honesty, or a next step..." />
+        <label class="visually-hidden" for="reply-input-${escapeHTML(post.id || "")}">Write a reply</label>
+        <input id="reply-input-${escapeHTML(post.id || "")}" placeholder="Reply with support, honesty, or a next step..." />
         <button class="secondary-button" type="submit">Reply</button>
       </form>
     </div>
   `;
+}
+
+function formatRelativeTime(value) {
+  if (!value) return "just now";
+  const then = new Date(value).getTime();
+  if (Number.isNaN(then)) return "";
+  const seconds = Math.round((Date.now() - then) / 1000);
+  if (seconds < 45) return "just now";
+  const minutes = Math.round(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.round(hours / 24);
+  if (days < 7) return `${days}d ago`;
+  const weeks = Math.round(days / 7);
+  if (weeks < 5) return `${weeks}w ago`;
+  return new Date(value).toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
 function bindPageEvents() {
@@ -1393,9 +1519,34 @@ function bindPageEvents() {
   document.querySelectorAll("[data-load-replies]").forEach((button) => {
     button.addEventListener("click", async () => {
       const postId = button.dataset.loadReplies;
-      if (postId) await loadReplies(postId);
+      if (!postId) return;
+      if (state.communityReplies[postId]) {
+        delete state.communityReplies[postId];
+        render();
+        return;
+      }
+      await loadReplies(postId);
     });
   });
+
+  document.querySelectorAll("[data-respect]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const postId = button.dataset.respect;
+      if (!postId) return;
+      state.respectedPosts[postId] = !state.respectedPosts[postId];
+      render();
+    });
+  });
+
+  const filterInput = document.querySelector("#community-filter");
+  if (filterInput) {
+    filterInput.addEventListener("input", () => {
+      state.communityFilter = filterInput.value;
+      const list = document.querySelector(".community-list");
+      if (list) list.outerHTML = renderCommunityList();
+      rebindCommunityListButtons();
+    });
+  }
 
   document.querySelectorAll("[data-reply-form]").forEach((form) => {
     form.addEventListener("submit", async (event) => {
@@ -1411,6 +1562,20 @@ function bindPageEvents() {
 
   const chatWindow = document.querySelector("#chat-window");
   if (chatWindow) chatWindow.scrollTop = chatWindow.scrollHeight;
+}
+
+function rebindCommunityListButtons() {
+  document.querySelectorAll("[data-community-id]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const community = state.communities.find((item) => item.id === button.dataset.communityId);
+      if (!community) return;
+      state.activeCommunityId = community.id;
+      state.activeCommunityName = community.name;
+      state.communityPosts = [];
+      state.communityReplies = {};
+      await loadCommunityPosts();
+    });
+  });
 }
 
 async function loadCommunityPosts() {
@@ -1651,6 +1816,7 @@ function renderLoading(page) {
         <h1>Naming what this might be.</h1>
       </section>
     </main>
+    ${renderFooter()}
   `;
 }
 
