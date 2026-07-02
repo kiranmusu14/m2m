@@ -660,11 +660,37 @@ function renderDiagnosis() {
       ${renderEmotionInsight(state.analysis.emotion)}
       <div class="diagnosis-actions">
         <button class="primary-button" data-page="guide" type="button">Talk it through</button>
-        <button class="secondary-button" data-page="reset" type="button">Run a reset</button>
+        ${
+          resetForEmotion(state.analysis.emotion)
+            ? `<button class="secondary-button" data-reset-direct="${escapeHTML(resetForEmotion(state.analysis.emotion).id)}" type="button">Run the ${escapeHTML(resetForEmotion(state.analysis.emotion).title)} reset</button>`
+            : `<button class="secondary-button" data-page="reset" type="button">Run a reset</button>`
+        }
         <button class="secondary-button" id="reset-checkin" type="button">Start over</button>
       </div>
     </div>
   `;
+}
+
+const emotionToReset = {
+  anger: "anger",
+  hurt: "conflict",
+  panic: "anxiety",
+  anxiety: "anxiety",
+  stress: "anxiety",
+  overwhelm: "anxiety",
+  numbness: "anxiety",
+  rumination: "overthinking",
+  shame: "shame",
+  guilt: "shame",
+  heartbreak: "breakup",
+  sadness: "loneliness",
+  "low mood": "loneliness",
+  loneliness: "loneliness",
+};
+
+function resetForEmotion(emotion) {
+  const id = emotionToReset[canonicalEmotion(emotion)];
+  return resetGuides.find((guide) => guide.id === id) || null;
 }
 
 function renderEmotionInsight(emotion) {
@@ -1225,6 +1251,16 @@ function bindPageEvents() {
     button.addEventListener("click", () => {
       state.activeReset = button.dataset.reset;
       state.resetStep = 0;
+      render();
+    });
+  });
+
+  document.querySelectorAll("[data-reset-direct]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.activeReset = button.dataset.resetDirect;
+      state.resetStep = 0;
+      state.page = "reset";
+      window.location.hash = "reset";
       render();
     });
   });
