@@ -635,6 +635,7 @@ function renderCheckInForm() {
       <textarea id="entry" placeholder="Example: I keep snapping at people and then I feel like a failure.">${escapeHTML(state.entry)}</textarea>
       <p class="error-text" id="entry-error"></p>
       <button class="primary-button" type="submit">Name what this is</button>
+      <p class="safety-note">Check-ins are anonymous and stored to make the guide better. No names, no accounts.</p>
     </form>
   `;
 }
@@ -1619,7 +1620,24 @@ async function startAnalysis(entry, errorSelector, pageAfter) {
   state.analysis = await analyzeEntry(entry);
   state.messages = [{ role: "bot", text: state.analysis.opener }];
   state.page = pageAfter;
+  logCheckin(entry, state.analysis);
   render();
+}
+
+function logCheckin(entry, analysis) {
+  postJSON("/api/checkin-log", {
+    entry,
+    emotion: analysis.emotion,
+    emotionWords: analysis.emotionWords,
+    intensity: analysis.intensity,
+    tone: analysis.tone,
+    shortRead: analysis.shortRead,
+    keyPhrase: analysis.keyPhrase,
+    crisis: analysis.crisis,
+    source: analysis.local ? "local" : "api",
+  }).catch(() => {
+    // Logging is best-effort; never interrupt the user's check-in.
+  });
 }
 
 function renderLoading(page) {

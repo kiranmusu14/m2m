@@ -245,6 +245,10 @@ export async function onRequest(context) {
       return await handleConversation(request, config);
     }
 
+    if (request.method === "POST" && pathname === "/api/checkin-log") {
+      return await handleLogCheckin(request, config);
+    }
+
     if (request.method === "GET" && pathname === "/api/communities") {
       return await handleListCommunities(config);
     }
@@ -376,6 +380,39 @@ async function handleConversation(request, config) {
   });
 
   return json(200, result);
+}
+
+async function handleLogCheckin(request, config) {
+  const notConfigured = requireSupabase(config);
+  if (notConfigured) return notConfigured;
+
+  const body = await readJson(request);
+  const entry = cleanText(body.entry, 1000);
+
+  if (entry.length < 3) {
+    return json(400, { error: "entry_required" });
+  }
+
+  await supabaseRequest(config, "/rest/v1/checkin_logs", {
+    method: "POST",
+    headers: { Prefer: "return=minimal" },
+    body: JSON.stringify({
+      entry,
+      emotion: cleanText(body.emotion, 60),
+      emotion_words: cleanText(
+        Array.isArray(body.emotionWords) ? body.emotionWords.join(", ") : body.emotionWords,
+        200
+      ),
+      intensity: cleanText(body.intensity, 20),
+      tone: cleanText(body.tone, 30),
+      short_read: cleanText(body.shortRead, 300),
+      key_phrase: cleanText(body.keyPhrase, 150),
+      crisis: Boolean(body.crisis),
+      source: body.source === "local" ? "local" : "api",
+    }),
+  });
+
+  return json(201, { ok: true });
 }
 
 async function handleListCommunities(config) {

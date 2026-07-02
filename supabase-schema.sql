@@ -30,6 +30,34 @@ create table if not exists public.community_replies (
   created_at timestamptz not null default now()
 );
 
+create table if not exists public.checkin_logs (
+  id uuid primary key default gen_random_uuid(),
+  entry text not null,
+  emotion text not null default '',
+  emotion_words text not null default '',
+  intensity text not null default '',
+  tone text not null default '',
+  short_read text not null default '',
+  key_phrase text not null default '',
+  crisis boolean not null default false,
+  source text not null default 'api',
+  created_at timestamptz not null default now()
+);
+
+alter table public.checkin_logs enable row level security;
+
+-- Insert-only for the public key: visitors can log a check-in but can
+-- never read anyone's entries back. Read via the Supabase dashboard or
+-- a service-role key only.
+drop policy if exists "checkin_logs_insert_public" on public.checkin_logs;
+create policy "checkin_logs_insert_public"
+on public.checkin_logs
+for insert
+to anon
+with check (
+  length(trim(entry)) between 3 and 1000
+);
+
 alter table public.community_circles enable row level security;
 alter table public.community_posts enable row level security;
 alter table public.community_replies enable row level security;
